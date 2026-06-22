@@ -1,0 +1,2380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS/AM Forecast Dashboard — FY27</title>
+<style>
+  :root{--bg:#0f1117;--surface:#1a1d27;--surface2:#232636;--border:#2e3248;--accent:#6c63ff;--accent2:#00d4aa;--text:#e8eaf0;--muted:#8b90a8;--green:#22c55e;--yellow:#f59e0b;--red:#ef4444;--orange:#f97316;--blue:#3b82f6;--purple:#a855f7;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI',sans-serif;min-height:100vh;overflow-y:scroll;}
+  .hdr{background:linear-gradient(135deg,#1a1d27,#0f1117);border-bottom:1px solid var(--border);padding:14px 32px 0;position:sticky;top:0;z-index:100;}
+  .hdr-top{display:flex;align-items:center;justify-content:space-between;padding-bottom:10px;}
+  .hdr-nav{display:flex;align-items:center;gap:8px;padding:6px 32px 10px;}
+  .hdr h1{font-size:20px;font-weight:700;}.hdr p{font-size:12px;color:var(--muted);margin-top:3px;}
+  .hdr-meta{display:flex;align-items:center;gap:10px;}
+  .hdr-tools{display:flex;align-items:center;gap:10px;}
+  .badge{background:var(--accent);color:#fff;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;}
+  .icon-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-size:12px;padding:6px 14px;border-radius:8px;cursor:pointer;transition:all .2s;}
+  .icon-btn:hover{border-color:var(--accent);color:var(--text);}
+  .last-updated{font-size:11px;color:var(--muted);}
+  .qtabs{display:flex;gap:6px;padding:20px 32px 14px;background:var(--bg);align-items:center;justify-content:space-between;}
+  .qtab{padding:5px 14px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;border-radius:8px;background:var(--surface2);border:1px solid var(--border);transition:all .2s;}
+  .qtab:hover{color:var(--text);border-color:var(--accent);}.qtab.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .sumbar{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:16px 32px;}
+  .sc{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;}
+  .sc.hi{border-color:var(--accent);}
+  .sc .l{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;}
+  .sc .v{font-size:22px;font-weight:700;}.sc .s{font-size:10px;color:var(--muted);margin-top:4px;line-height:1.6;}
+  .tsec{padding:0 32px 40px;}.ttl{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;padding-top:4px;}
+  .mwrap{border-radius:12px;border:1px solid var(--border);overflow:hidden;}
+  table{width:100%;border-collapse:collapse;background:var(--surface);font-size:13px;}
+  thead th{background:var(--surface2);padding:12px 16px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;text-align:center;border-bottom:1px solid var(--border);white-space:nowrap;}
+  thead th:first-child{text-align:left;min-width:160px;}
+  tbody tr{border-bottom:1px solid var(--border);transition:background .15s;}
+  tbody tr:last-child{border-bottom:none;}
+  tbody tr:hover:not(.trow){background:rgba(108,99,255,.06);}
+  tbody td{padding:14px 16px;text-align:center;vertical-align:middle;}
+  tbody td:first-child{text-align:left;}
+  .pn{display:flex;align-items:center;gap:10px;cursor:pointer;}
+  .pa{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;}
+  .pm{font-size:10px;color:var(--muted);font-weight:400;margin-top:2px;}
+  .av{font-weight:600;color:var(--text);}
+  .chip{display:inline-flex;align-items:center;justify-content:center;min-width:72px;padding:6px 10px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:transform .1s;}
+  .chip:hover{transform:translateY(-1px);}
+  .chip.green{background:rgba(34,197,94,.15);color:#22c55e;}
+  .chip.yellow{background:rgba(245,158,11,.15);color:#f59e0b;}
+  .chip.red{background:rgba(239,68,68,.15);color:#ef4444;}
+  .chip.na{background:rgba(255,255,255,.04);color:var(--muted);font-weight:400;font-size:12px;cursor:default;}
+  tr.trow td{font-weight:700;background:var(--surface2);border-top:2px solid var(--border);}
+  tr.trow td:first-child{color:var(--accent);font-size:12px;letter-spacing:.5px;font-weight:800;text-transform:uppercase;}
+  /* Modal */
+  .mover{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;backdrop-filter:blur(6px);align-items:center;justify-content:center;}
+  .mover.open{display:flex;}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:94%;max-width:1200px;height:78vh;display:flex;flex-direction:column;overflow:hidden;}
+  .mh{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;}
+  .mh h2{font-size:18px;font-weight:700;letter-spacing:-.2px;}.mh .ms{font-size:12px;color:var(--muted);margin-top:5px;display:flex;align-items:center;gap:8px;}
+  .mc2{width:32px;height:32px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;}
+  .mc2:hover{background:var(--border);color:var(--text);}
+  .mtbs{display:flex;background:var(--surface2);border-bottom:1px solid var(--border);padding:0 24px;}
+  .mtb{padding:10px 20px;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;}
+  .mtb.active{color:var(--accent);border-bottom-color:var(--accent);}
+  .mb{overflow-y:auto;padding:20px 24px;flex:1;}
+  .mg{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px;}
+  .mbox{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;}
+  .mbox .ml{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px;}
+  .mbox .mv{font-size:18px;font-weight:700;}
+  .mbox .mv.green{color:var(--green);}.mbox .mv.yellow{color:var(--yellow);}.mbox .mv.red{color:var(--red);}.mbox .mv.blue{color:var(--blue);}
+  .dw{overflow-x:auto;border-radius:10px;border:1px solid var(--border);}
+  .dt{width:100%;border-collapse:collapse;font-size:12px;min-width:860px;}
+  .dt th{background:var(--surface2);padding:10px 14px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+  .dt td{padding:11px 14px;border-bottom:1px solid rgba(46,50,72,.5);vertical-align:middle;font-size:12px;text-align:left;}
+  .dt tr:last-child td{border-bottom:none;}.dt tr:hover td{background:rgba(108,99,255,.05);}
+  .tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;white-space:nowrap;}
+  .tag.rn{background:rgba(34,197,94,.15);color:var(--green);}.tag.cm{background:rgba(59,130,246,.15);color:var(--blue);}
+  .tag.tg{background:rgba(245,158,11,.15);color:var(--yellow);}.tag.ch{background:rgba(239,68,68,.15);color:var(--red);}
+  .tag.pp{background:rgba(139,144,168,.12);color:var(--muted);}.tag.bc{background:rgba(168,85,247,.15);color:var(--purple);}
+  .tag.cw{background:rgba(0,212,170,.15);color:var(--accent2);}.tag.dn{background:rgba(249,115,22,.15);color:var(--orange);}
+  .tag.ot{background:rgba(139,144,168,.08);color:var(--muted);font-style:italic;}
+  .empty{text-align:center;padding:48px;color:var(--muted);}
+  /* Setup / loading */
+  .setup{display:flex;align-items:center;justify-content:center;min-height:70vh;padding:32px;}
+  .setup-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;max-width:560px;width:100%;text-align:center;}
+  .setup-card h2{font-size:20px;font-weight:700;margin-bottom:8px;}
+  .setup-card p{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:24px;}
+  .setup-steps{text-align:left;background:var(--surface2);border-radius:10px;padding:16px 20px;margin-bottom:24px;font-size:12px;color:var(--muted);line-height:2;}
+  .setup-steps b{color:var(--text);}
+  .url-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;color:var(--text);font-size:13px;outline:none;margin-bottom:8px;}
+  .url-input:focus{border-color:var(--accent);}
+  .url-input::placeholder{color:var(--muted);}
+  .save-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:12px 28px;font-size:14px;font-weight:600;cursor:pointer;width:100%;margin-top:8px;}
+  .save-btn:hover{opacity:.9;}
+  .err-msg{color:var(--red);font-size:12px;margin-top:4px;min-height:16px;}
+  .spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;}
+  .loading-text{font-size:14px;color:var(--muted);}
+  /* Data quality */
+  .dq-summary{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
+  .dq-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;min-width:130px;cursor:pointer;transition:all .2s;}
+  .dq-card:hover{border-color:var(--accent);}
+  .dq-card.active-filter{border-color:var(--accent);background:rgba(108,99,255,.1);}
+  .dq-card .dqc-n{font-size:22px;font-weight:700;margin-bottom:2px;}
+  .dq-card .dqc-l{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+  .dq-sev-high{color:var(--red);}
+  .dq-sev-med{color:var(--yellow);}
+  .dq-sev-low{color:var(--muted);}
+  .sev-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;flex-shrink:0;}
+  .sev-dot.high{background:var(--red);}
+  .sev-dot.med{background:var(--yellow);}
+  .sev-dot.low{background:var(--muted);}
+  /* Nav tabs (Dashboard / Log) */
+  .nav-tabs{display:flex;gap:2px;align-items:center;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:3px;}
+  .nav-tab{padding:5px 12px;font-size:12px;font-weight:600;color:var(--muted);border-radius:7px;cursor:pointer;transition:all .2s;position:relative;}
+  .nav-tab:hover{color:var(--text);}
+  .nav-tab.active{background:var(--accent);color:#fff;}
+  .nbadge{position:absolute;top:-5px;right:-5px;background:var(--red);color:#fff;font-size:9px;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px;}
+  /* Log page */
+  .log-page{padding:24px 32px 48px;}
+  .log-filters{display:flex;gap:10px;align-items:center;margin-bottom:20px;flex-wrap:wrap;}
+  .log-filters select{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:12px;padding:7px 10px;border-radius:8px;outline:none;cursor:pointer;}
+  .log-filters select:focus{border-color:var(--accent);}
+  .log-filters .flab{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+  .log-actions{margin-left:auto;display:flex;gap:8px;}
+  .log-clear{background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:6px 12px;border-radius:7px;cursor:pointer;}
+  .log-clear:hover{border-color:var(--red);color:var(--red);}
+  .arrow-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;}
+  .arrow-chip .old{background:rgba(139,144,168,.15);color:var(--muted);padding:2px 7px;border-radius:4px;}
+  .arrow-chip .arr{color:var(--muted);}
+  .arrow-chip .new{padding:2px 7px;border-radius:4px;}
+  .log-empty{text-align:center;padding:64px;color:var(--muted);}
+  .log-empty .le-icon{font-size:36px;margin-bottom:12px;}
+  .log-empty p{font-size:13px;line-height:1.7;}
+  .log-count{font-size:11px;color:var(--muted);margin-bottom:12px;}
+  /* Scenario panel */
+  .scen-panel{margin:0 32px 0;background:var(--surface);border:1px solid var(--accent);border-radius:14px;overflow:hidden;}
+  .scen-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:rgba(108,99,255,.1);border-bottom:1px solid var(--border);}
+  .scen-hdr-left{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--accent);}
+  .scen-active-badge{background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;}
+  .scen-reset{background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:5px 12px;border-radius:7px;cursor:pointer;}
+  .scen-reset:hover{border-color:var(--red);color:var(--red);}
+  .scen-body{padding:16px 20px;}
+  .scen-cols{display:flex;gap:14px;}
+  .scen-card{flex:1;background:rgba(255,255,255,0.025);border:1px solid var(--border);border-radius:10px;padding:14px 18px;}
+  .scen-card-hdr{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;padding-bottom:10px;margin-bottom:8px;border-bottom:1px solid var(--border);}
+  .scen-card-hdr.renewal{color:var(--accent);}
+  .scen-card-hdr.upsell{color:var(--green);}
+  .scen-tbl{border-collapse:collapse;width:100%;}
+  .scen-tbl th{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:4px 0;text-align:center;}
+  .scen-tbl th:first-child{text-align:left;min-width:76px;}
+  .scen-row td{padding:8px 0;text-align:center;vertical-align:middle;border-bottom:1px solid rgba(255,255,255,0.04);}
+  .scen-row:last-child td{border-bottom:none;}
+  .scen-row td:first-child{text-align:left;font-size:12px;font-weight:500;color:var(--text);}
+  .scen-rdot{display:inline-block;width:16px;height:16px;border-radius:50%;border:2px solid var(--border);cursor:pointer;transition:all .15s;vertical-align:middle;}
+  .scen-rdot:hover{border-color:var(--muted);}
+  .scen-rdot.sn{border-color:var(--muted);box-shadow:inset 0 0 0 4px var(--muted);}
+  .scen-rdot.sw{border-color:var(--green);box-shadow:inset 0 0 0 4px var(--green);}
+  .scen-rdot.sl{border-color:var(--red);box-shadow:inset 0 0 0 4px var(--red);}
+  .scen-result{padding:14px 20px;background:var(--surface2);border-top:1px solid var(--border);display:flex;gap:24px;flex-wrap:wrap;align-items:center;}
+  .sr-item{display:flex;flex-direction:column;gap:2px;}
+  .sr-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+  .sr-val{font-size:20px;font-weight:700;}
+  .sr-delta{font-size:11px;margin-top:1px;}
+  .sr-sep{width:1px;background:var(--border);align-self:stretch;}
+  .scen-col{background:rgba(108,99,255,.08)!important;}
+  th.scen-col{color:var(--accent)!important;}
+  .active-view{border-color:var(--accent);color:var(--accent);}
+  .ovr-active { background: rgba(108,99,255,.05); }
+  .tag.r{background:rgba(59,130,246,.15);color:var(--blue);}
+  .tag.u{background:rgba(0,212,170,.15);color:var(--accent2);}
+  .tag.pod{background:rgba(108,99,255,.12);color:var(--accent);}
+  .tbl{width:100%;border-collapse:collapse;background:var(--surface);font-size:13px;}
+  .tbl th{background:var(--surface2);padding:10px 12px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+  .tbl td{padding:10px 12px;border-bottom:1px solid rgba(46,50,72,.5);vertical-align:middle;text-align:left;}
+  .tbl tr:last-child td{border-bottom:none;}.tbl tr:hover td{background:rgba(108,99,255,.04);}
+</style>
+</head>
+<body>
+
+<div class="hdr" style="display:flex;align-items:center;padding:0 32px;height:68px;position:relative">
+  <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+    <h1>CS/AM Forecast Dashboard</h1>
+    <span class="badge">FY27</span>
+  </div>
+  <!-- hidden log nav kept for badge tracking -->
+  <div style="display:none"><div id="navLog"><span class="nbadge" id="logBadge">0</span></div><span class="nbadge" id="dqBadge">0</span></div>
+  <!-- Centered ALL / CSM / AM toggle -->
+  <div style="position:absolute;left:50%;transform:translateX(-50%);display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden;font-size:12px;font-weight:700">
+    <div id="toggleCS" onclick="csmView=false;switchPage('dashboard')" style="padding:5px 14px;cursor:pointer;background:var(--accent);color:#fff;transition:all .2s">ALL</div>
+    <div id="toggleCSM" onclick="csmView=true;switchPage('dashboard');const _ob=document.getElementById('ovrNavBtn'),_os=document.getElementById('ovrNavSep');if(_ob)_ob.style.display='';if(_os)_os.style.display='';" style="padding:5px 14px;cursor:pointer;color:var(--muted);transition:all .2s;border-left:1px solid var(--border)">CSM</div>
+    <div id="toggleAM" onclick="switchPage('am')" style="padding:5px 14px;cursor:pointer;color:var(--muted);transition:all .2s;border-left:1px solid var(--border)">AM</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:auto">
+    <button class="icon-btn" id="scenBtn" onclick="toggleScenario()" style="border-color:transparent">⚡ What-If</button>
+    <div id="scenSep" style="width:1px;height:22px;background:var(--border);margin:0 2px"></div>
+    <button class="icon-btn" id="ovrNavBtn" onclick="switchPage('overrides')" style="display:none">Overrides</button>
+    <div id="ovrNavSep" style="width:1px;height:22px;background:var(--border);margin:0 2px;display:none"></div>
+    <button class="icon-btn" onclick="switchPage('quality')">Data Hygiene</button>
+    <div style="width:1px;height:22px;background:var(--border);margin:0 2px"></div>
+    <button class="icon-btn" onclick="loadData(true)">↻ Refresh</button>
+  </div>
+</div>
+
+<div id="app"></div>
+<div id="pageFooter" style="display:none;padding:10px 32px;border-top:1px solid var(--border);font-size:11px;color:var(--muted)">
+  <span id="lastUpdated"></span>
+</div>
+
+<div class="mover" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="mh">
+      <div><h2 id="mTitle"></h2><div class="ms" id="mSub"></div></div>
+      <button class="mc2" onclick="closeModal()">✕</button>
+    </div>
+    <div class="mtbs">
+      <div class="mtb active" id="tab-r" onclick="switchTab('r')">Renewal Deals</div>
+      <div class="mtb" id="tab-u" onclick="switchTab('u')">Upsell Deals</div>
+    </div>
+    <div class="mb" id="mBody"></div>
+  </div>
+</div>
+
+<script>
+const POD_COLORS={'Rahul':'#6c63ff','Alice':'#00d4aa','Muskan':'#f97316','Abhilash':'#3b82f6'};
+const HS_PORTAL_KEY='cs_hs_portal';
+const HS_PORTAL_ID='7712708';
+const CACHE_KEY='cs_forecast_data_v2';
+const CACHE_TTL=4*60*60*1000;
+const LOG_KEY='cs_forecast_log_v1';
+const SNAP_KEY='cs_forecast_snap_v1';
+
+// ── Transport detection ───────────────────────────────────────────────────────
+// true  → served from Apps Script (google.script.run available)
+// false → served from GitHub Pages (uses JSONP to call Apps Script)
+const IS_APPSCRIPT = typeof google !== 'undefined' && typeof google.script !== 'undefined';
+const DEFAULT_URL = 'https://script.google.com/a/macros/spotdraft.com/s/AKfycbxb_el5JeFPh2F5_Xp2CF6kT4YJPmK1_xOdfSjz1jptiw7drjXp4r9EhxwX9ikZUd_t/exec';
+const URL_KEY = 'cs_forecast_script_url';
+function getScriptUrl(){ return localStorage.getItem(URL_KEY)||DEFAULT_URL; }
+function setScriptUrl(u){ localStorage.setItem(URL_KEY,u.trim()); }
+
+let DATA=null,activeQ='Q1-FY2027',modalPod=null,modalQ=null,modalTab='r',modalFilter=null;
+let modalCSM=null;
+let amDrillParams=null;
+let activePage='dashboard';
+let overrideMode=false;
+let overrideAuth=null; // {podLead:'Rahul'} when authed, null otherwise
+const OVERRIDE_PIN='Lead2027';
+const POD_LEADS_LIST=Object.keys(POD_COLORS);
+// log filter state
+let logFilterPod='',logFilterQ='',logFilterCat='',logFilterType='';
+// scenario state
+let scenarioOpen=false;
+// AM page state
+let amMonthlyTarget=250000;
+let amPodFilter='';
+// CSM view state
+let csmView=false,csmFilterCSM='',csmFilterPod='';
+const scenario={renewalTNG:'neutral',renewalCommit:'neutral',upsellTNG:'neutral',upsellBC:'neutral',upsellCommit:'neutral'};
+
+window.onload=()=>{
+  updateLogBadge();
+  try{const saved=sessionStorage.getItem('ovrAuth');if(saved)overrideAuth=JSON.parse(saved);}catch(e){}
+  loadData(false);
+};
+
+// ── Transport helpers ─────────────────────────────────────────────────────────
+// AppScript path: google.script.run wrapper
+function gsRun(fnName,...args){
+  return new Promise((resolve,reject)=>{
+    let runner=google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
+    runner[fnName](...args);
+  });
+}
+// GitHub Pages path: JSONP helpers
+let _jcbSeq=0;
+function jsonpFetch(url,timeout=45000){
+  return new Promise((resolve,reject)=>{
+    const cb='_jcb'+Date.now()+(++_jcbSeq);
+    const t=setTimeout(()=>{cleanup();reject(new Error('Script load failed — check URL and deployment'));},timeout);
+    function cleanup(){delete window[cb];if(s.parentNode)s.parentNode.removeChild(s);}
+    window[cb]=d=>{clearTimeout(t);cleanup();resolve(d);};
+    const s=document.createElement('script');
+    s.src=url+'?callback='+cb;
+    s.onerror=()=>{clearTimeout(t);cleanup();reject(new Error('Script load failed — check URL and deployment'));};
+    document.head.appendChild(s);
+  });
+}
+function jsonpOverride(bodies){
+  return new Promise((resolve,reject)=>{
+    const cb='_jcb'+Date.now()+(++_jcbSeq);
+    const t=setTimeout(()=>{cleanup();reject(new Error('Override save timed out'));},30000);
+    function cleanup(){delete window[cb];if(s.parentNode)s.parentNode.removeChild(s);}
+    window[cb]=d=>{clearTimeout(t);cleanup();d&&d.error?reject(new Error(d.error)):resolve(d);};
+    const s=document.createElement('script');
+    s.src=getScriptUrl()+'?action=override&callback='+cb+'&payload='+encodeURIComponent(JSON.stringify(bodies));
+    s.onerror=()=>{clearTimeout(t);cleanup();reject(new Error('Override save failed'));};
+    document.head.appendChild(s);
+  });
+}
+
+// ── Auto-clean stale overrides ────────────────────────────────────────────────
+// If a deal is now closed/churned/renewed/1x but still has an override record,
+// silently delete it from Google Sheets and clear it in memory.
+function autoCleanStaleOverrides_(){
+  if(!DATA) return;
+  const stale=[];
+  (DATA.renewalDeals||[]).forEach(d=>{
+    const hasOvr=!!(d.overrideFC||(d.overrideAmount!==null&&d.overrideAmount!==undefined&&d.overrideAmount!=='')||d.overrideMonth);
+    if(!hasOvr) return;
+    const stL=(d.dealStage||'').toLowerCase();
+    if(stL==='renewed'||stL==='churned') stale.push({...d,_type:'Renewal'});
+  });
+  (DATA.upsellDeals||[]).forEach(d=>{
+    const hasOvr=!!(d.overrideFC||(d.overrideAmount!==null&&d.overrideAmount!==undefined&&d.overrideAmount!=='')||d.overrideMonth);
+    if(!hasOvr) return;
+    const stL=(d.dealStage||'').toLowerCase();
+    const is1x=d.oneTimeFee===true||(d.oneTimeFeeRaw||'').toLowerCase()==='yes';
+    if(stL==='closed won'||stL==='closed lost'||is1x) stale.push({...d,_type:'Upsell'});
+  });
+  if(!stale.length) return;
+  const bodies=stale.map(d=>{
+    // Clear in-memory immediately
+    const arr=d._type==='Renewal'?DATA.renewalDeals:DATA.upsellDeals;
+    const rec=arr.find(x=>x.dealId===d.dealId);
+    if(rec){rec.overrideFC='';rec.overrideAmount=null;rec.overrideMonth='';rec.overrideBy='';rec.overrideAt='';}
+    return{dealId:d.dealId,dealType:d._type,action:'clear',overrideBy:'auto-clean',
+           company:d.company||'',quarter:d.fiscalQuarter||activeQ,
+           oldFC:d.overrideFC||'',oldAmount:d.overrideAmount!=null?d.overrideAmount:'',oldMonth:d.overrideMonth||''};
+  });
+  // Fire-and-forget batch delete
+  if(IS_APPSCRIPT){
+    google.script.run
+      .withSuccessHandler(()=>{})
+      .withFailureHandler(err=>console.error('Auto-clean failed:',err))
+      .handleClientOverrides(bodies);
+  } else {
+    jsonpOverride(bodies).catch(err=>console.error('Auto-clean failed:',err));
+  }
+}
+
+// ── Data loading ──────────────────────────────────────────────────────────────
+async function loadData(forceRefresh){
+  if(!forceRefresh){const c=loadCache();if(c){DATA=c;autoCleanStaleOverrides_();updateDQBadge(runDQChecks().length);if(activePage==='log')renderLog();else if(activePage==='quality')renderQuality();else if(activePage==='overrides')renderOverrides();else if(activePage==='am')renderAM();else render();return;}}
+  document.getElementById('app').innerHTML=`
+    <div class="loading-screen"><div class="spinner"></div>
+    <div class="loading-text">Fetching live data from HubSpot…</div></div>`;
+  try{
+    const json = IS_APPSCRIPT ? await gsRun('buildPayload') : await jsonpFetch(getScriptUrl());
+    if(json&&json.error) throw new Error(json.error);
+    // Detect FC changes before saving new snapshot
+    detectChanges(json);
+    DATA=json;saveCache(DATA);
+    autoCleanStaleOverrides_();
+    updateDQBadge(runDQChecks().length);
+    if(activePage==='log')renderLog();else if(activePage==='quality')renderQuality();else if(activePage==='overrides')renderOverrides();else if(activePage==='am')renderAM();else render();
+  }catch(err){
+    const _urlSection=IS_APPSCRIPT?'':
+      `<p style="margin-top:16px;margin-bottom:6px;font-size:12px;color:var(--muted)">Update the Apps Script URL if it's wrong:</p>
+       <input class="url-input" id="errUrlInput" value="${getScriptUrl()}" placeholder="https://script.google.com/...">
+       <button class="save-btn" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);margin-top:6px"
+         onclick="setScriptUrl(document.getElementById('errUrlInput').value);localStorage.removeItem(CACHE_KEY);loadData(true)">
+         Update URL &amp; Retry
+       </button>`;
+    document.getElementById('app').innerHTML=`
+      <div class="setup"><div class="setup-card">
+        <h2 style="color:var(--red)">Failed to load data</h2>
+        <p style="margin-bottom:16px">Error: <code style="color:var(--text)">${err.message||err}</code></p>
+        <p>Most likely fix: go to Apps Script → <b>Deploy → Manage deployments</b> → edit → set version to <b>New version</b> → Deploy again.</p>
+        ${_urlSection}
+        <button class="save-btn" style="margin-top:20px;background:var(--accent)" onclick="loadData(true)">Reload</button>
+      </div></div>`;
+  }
+}
+
+function saveCache(d){try{localStorage.setItem(CACHE_KEY,JSON.stringify({ts:Date.now(),data:d}));}catch(_){}}
+function loadCache(){try{const r=localStorage.getItem(CACHE_KEY);if(!r)return null;const{ts,data}=JSON.parse(r);return Date.now()-ts>CACHE_TTL?null:data;}catch(_){return null;}}
+
+// ── Scenario helpers ──────────────────────────────────────────────────────────
+function sMult(state,std){return state==='won'?1.0:state==='lost'?0:std;}
+function isScenActive(){return Object.values(scenario).some(v=>v!=='neutral');}
+
+function computeScen(b){
+  const ra=b.renewableARR||0;
+  if(!ra)return null;
+  const gNum=(b.renewedARR||0)+(b.renewalCommit||0)*sMult(scenario.renewalCommit,1)+
+             (b.renewalTNG||0)*sMult(scenario.renewalTNG,0.75)+(b.downgradedARR||0);
+  const nNum=gNum+(b.upsellClosedWon||0)+
+             (b.upsellCommit||0)*sMult(scenario.upsellCommit,1)+
+             (b.upsellTNG||0)*sMult(scenario.upsellTNG,0.75)+
+             (b.upsellBestCase||0)*sMult(scenario.upsellBC,0.5);
+  return{grr:gNum/ra,nrr:nNum/ra,nrrNum:nNum,grrNum:gNum};
+}
+
+function toggleScenario(){
+  scenarioOpen=!scenarioOpen;
+  const btn=document.getElementById('scenBtn');
+  if(btn){btn.style.borderColor=scenarioOpen?'var(--accent)':'transparent';btn.style.color=scenarioOpen?'var(--accent)':'';}
+  if(DATA&&activePage==='dashboard')render();
+  else if(DATA&&activePage==='am')renderAM();
+}
+
+function setScen(key,val){
+  scenario[key]=val;
+  if(DATA&&activePage==='dashboard')render();
+  else if(DATA&&activePage==='am')renderAM();
+}
+
+function resetScenario(){
+  Object.keys(scenario).forEach(k=>scenario[k]='neutral');
+  if(DATA&&activePage==='dashboard')render();
+  else if(DATA&&activePage==='am')renderAM();
+}
+
+function stgHTML(label,key){
+  const v=scenario[key];
+  const rd=(val,cls)=>`<span class="scen-rdot${v===val?' '+cls:''}" onclick="setScen('${key}','${val}')"></span>`;
+  return`<tr class="scen-row"><td>${label}</td><td>${rd('neutral','sn')}</td><td>${rd('won','sw')}</td><td>${rd('lost','sl')}</td></tr>`;
+}
+
+// ── Change detection ──────────────────────────────────────────────────────────
+function buildSnapshot(data){
+  const snap={};
+  (data.renewalDeals||[]).forEach(d=>{
+    const k=`${d.company}|r|${d.fiscalQuarter}`;
+    snap[k]={fc:d.forecastCategory,stage:d.dealStage,amount:d.amount,pod:d.podLead};
+  });
+  (data.upsellDeals||[]).forEach(d=>{
+    const k=`${d.company}|u|${d.fiscalQuarter}`;
+    snap[k]={fc:d.forecastCategory,stage:d.dealStage,amount:d.effectiveARR||d.amount,pod:d.podLead};
+  });
+  return snap;
+}
+
+function detectChanges(newData){
+  const newSnap=buildSnapshot(newData);
+  let oldSnap={};
+  try{const s=localStorage.getItem(SNAP_KEY);if(s)oldSnap=JSON.parse(s);}catch(_){}
+
+  const log=loadLog();
+  const now=new Date().toISOString();
+  let added=0;
+
+  for(const[k,nv] of Object.entries(newSnap)){
+    const ov=oldSnap[k];
+    if(!ov) continue; // new deal, no history to compare
+    const oldFC=(ov.fc||'').trim().toLowerCase();
+    const newFC=(nv.fc||'').trim().toLowerCase();
+    if(oldFC===newFC) continue; // no change
+    const[company,type,quarter]=k.split('|');
+    log.unshift({
+      id:now+'_'+Math.random().toString(36).slice(2,7),
+      detectedAt:now,
+      company,
+      podLead:nv.pod||ov.pod||'',
+      fiscalQuarter:quarter,
+      dealType:type==='r'?'Renewal':'Upsell',
+      oldFC:ov.fc||'',
+      newFC:nv.fc||'',
+      amount:nv.amount||0
+    });
+    added++;
+  }
+
+  // Save new snapshot and log (cap log at 500 entries)
+  try{
+    localStorage.setItem(SNAP_KEY,JSON.stringify(newSnap));
+    localStorage.setItem(LOG_KEY,JSON.stringify(log.slice(0,2000)));
+  }catch(_){}
+
+  if(added>0) updateLogBadge(added);
+}
+
+function loadLog(){
+  try{const s=localStorage.getItem(LOG_KEY);return s?JSON.parse(s):[];}catch(_){return[];}
+}
+
+function updateLogBadge(delta){
+  // Show unread count stored separately
+  let unread=0;
+  try{unread=parseInt(localStorage.getItem('cs_log_unread')||'0',10);}catch(_){}
+  if(delta) unread+=delta;
+  if(delta!==undefined) try{localStorage.setItem('cs_log_unread',String(unread));}catch(_){}
+  const badge=document.getElementById('logBadge');
+  if(!badge)return;
+  if(unread>0){badge.textContent=unread>99?'99+':String(unread);badge.style.display='flex';}
+  else{badge.style.display='none';}
+}
+
+function clearUnread(){
+  try{localStorage.setItem('cs_log_unread','0');}catch(_){}
+  updateLogBadge();
+}
+
+// ── Page switching ────────────────────────────────────────────────────────────
+function switchPage(p){
+  activePage=p;
+  // CS / AM / CSM toggle highlight
+  const tCS=document.getElementById('toggleCS'),tAM=document.getElementById('toggleAM'),tCSM=document.getElementById('toggleCSM');
+  if(tCS&&tAM&&tCSM){
+    const onAM=p==='am', onCSM=(p==='dashboard'&&csmView);
+    const onCS=(p==='dashboard'&&!csmView)||(p==='overrides')||(p==='quality')||(p==='log');
+    [tCS,tAM,tCSM].forEach(el=>{el.style.background='';el.style.color='var(--muted)';});
+    if(onAM){tAM.style.background='var(--accent)';tAM.style.color='#fff';}
+    else if(onCSM){tCSM.style.background='var(--accent)';tCSM.style.color='#fff';}
+    else{tCS.style.background='var(--accent)';tCS.style.color='#fff';}
+  }
+  // Hide What-If button on overrides page only
+  const sBtn=document.getElementById('scenBtn'),sSep=document.getElementById('scenSep');
+  const hideScen=(p==='overrides');
+  if(sBtn) sBtn.style.display=hideScen?'none':'';
+  if(sSep) sSep.style.display=hideScen?'none':'';
+  // Show Overrides nav link only when in CSM view (dashboard or overrides page)
+  const ovrBtn=document.getElementById('ovrNavBtn'),ovrSep=document.getElementById('ovrNavSep');
+  const showOvr=csmView&&(p==='dashboard'||p==='overrides');
+  if(ovrBtn) ovrBtn.style.display=showOvr?'':'none';
+  if(ovrSep) ovrSep.style.display=showOvr?'':'none';
+  if(p==='log'){clearUnread();if(DATA)renderLog();else document.getElementById('app').innerHTML=`<div class="log-page"><p style="color:var(--muted);font-size:13px">Load data first to see the Change Log.</p></div>`;}
+  else if(p==='quality'){if(DATA)renderQuality();else document.getElementById('app').innerHTML=`<div class="log-page"><p style="color:var(--muted);font-size:13px">Load data first to see Data Hygiene issues.</p></div>`;}
+  else if(p==='overrides'){if(DATA)renderOverrides();else document.getElementById('app').innerHTML=`<div class="log-page"><p style="color:var(--muted);font-size:13px">Load data first to see Overrides.</p></div>`;}
+  else if(p==='am'){if(DATA)renderAM();else document.getElementById('app').innerHTML=`<div class="log-page"><p style="color:var(--muted);font-size:13px">Load data first to see the AM Dashboard.</p></div>`;}
+  else{if(DATA)render();}
+}
+
+// ── Data Quality ──────────────────────────────────────────────────────────────
+let dqFilterIssue='',dqFilterPod='',dqFilterQ='',dqFilterType='',dqSort='sev_company';
+
+function updateDQBadge(n){
+  // Badge number hidden; DQ issues visible on Data Quality page
+}
+
+function runDQChecks(){
+  const issues=[];
+  const today=new Date();today.setHours(0,0,0,0);
+  // Parse DD/MM/YYYY correctly (new Date("01/07/2026") is parsed as Jan 7 in JS — wrong)
+  function isPastDate(ds){
+    if(!ds||ds==='')return false;
+    const p=ds.split('/');if(p.length!==3)return false;
+    const d=new Date(+p[2],+p[1]-1,+p[0]);
+    return !isNaN(d.getTime())&&d.getFullYear()>=2000&&d<today;
+  }
+
+  // ── Renewal checks ──
+  const rSeen={};
+  for(const d of (DATA.renewalDeals||[])){
+    // Skip closed/completed deals — no DQ flags needed
+    const rStageL=(d.dealStage||'').toLowerCase();
+    if(rStageL==='renewed'||rStageL==='churned') continue;
+    const base={dealType:'Renewal',company:d.company,owner:d.dealOwner||'',pod:d.podLead||'',
+                quarter:d.fiscalQuarter,stage:d.dealStage,fc:d.forecastCategory,
+                dealId:d.dealId||'',dealName:d.dealName||'',
+                amount:d.amount,closeDate:d.closeDate};
+    if(!d.dealOwner||d.dealOwner.trim()==='')
+      issues.push({...base,issue:'Blank Deal Owner',sev:'high'});
+    if(!d.podLead||d.podLead.trim()==='')
+      issues.push({...base,issue:'Blank Pod Lead',sev:'high'});
+    else if(!POD_LEADS_LIST.includes(d.podLead.trim()))
+      issues.push({...base,issue:'Unknown Pod Lead',sev:'high'});
+    if((!d.forecastCategory||d.forecastCategory.trim()==='')&&d.dealStage!=='Renewed'&&d.dealStage!=='Churned')
+      issues.push({...base,issue:'Blank Forecast Category',sev:'high'});
+    if(!d.amount||d.amount===0)
+      issues.push({...base,issue:'Blank / Zero Amount',sev:'high'});
+    if(isPastDate(d.closeDate))
+      issues.push({...base,issue:'Past Close Date (still active)',sev:'med'});
+    // duplicate detection
+    const dupKey=`${(d.company||'').toLowerCase()}|${d.fiscalQuarter}|${d.dealOwner||''}`;
+    rSeen[dupKey]=(rSeen[dupKey]||0)+1;
+    d.__dKey=dupKey;
+  }
+  for(const d of (DATA.renewalDeals||[])){
+    if(rSeen[d.__dKey]>1)
+      issues.push({dealType:'Renewal',company:d.company,owner:d.dealOwner||'',pod:d.podLead||'',
+                   quarter:d.fiscalQuarter,stage:d.dealStage,fc:d.forecastCategory,
+                   dealId:d.dealId||'',dealName:d.dealName||'',
+                   amount:d.amount,closeDate:d.closeDate,issue:'Possible Duplicate',sev:'med'});
+  }
+
+  // ── Upsell checks ──
+  const uSeen={};
+  for(const d of (DATA.upsellDeals||[])){
+    // Skip closed deals — no DQ flags needed (case-insensitive)
+    const uStageL=(d.dealStage||'').toLowerCase();
+    if(uStageL==='closed won'||uStageL==='closed lost') continue;
+    const base={dealType:'Upsell',company:d.company,owner:d.dealOwner||'',pod:d.podLead||'',
+                quarter:d.fiscalQuarter,stage:d.dealStage,fc:d.forecastCategory,
+                upsellType:d.upsellType||'',
+                dealId:d.dealId||'',dealName:d.dealName||'',
+                amount:d.effectiveARR||d.amount,closeDate:d.closeDate};
+    if(!d.dealOwner||d.dealOwner.trim()==='')
+      issues.push({...base,issue:'Blank Deal Owner',sev:'high'});
+    if(!d.podLead||d.podLead.trim()==='')
+      issues.push({...base,issue:'Blank Pod Lead',sev:'high'});
+    else if(!POD_LEADS_LIST.includes(d.podLead.trim()))
+      issues.push({...base,issue:'Unknown Pod Lead',sev:'high'});
+    // One-time fee: if oneTimeFeeRaw is present in data (new field), check it's not blank
+    if('oneTimeFeeRaw' in d && (!d.oneTimeFeeRaw||d.oneTimeFeeRaw.trim()===''))
+      issues.push({...base,issue:'One-Time Fee Not Set',sev:'high'});
+    if((!d.forecastCategory||d.forecastCategory.trim()==='')&&uStageL!=='closed won'&&uStageL!=='closed lost')
+      issues.push({...base,issue:'Blank Forecast Category',sev:'high'});
+    if(!d.amount||d.amount===0)
+      issues.push({...base,issue:'Blank / Zero Amount',sev:'high'});
+    if('upsellType' in d&&(!d.upsellType||d.upsellType.trim()===''))
+      issues.push({...base,issue:'Upsell Type Not Set',sev:'med'});
+    if('amQualified' in d){
+      const amqv=d.amQualified;
+      if(amqv===null||amqv===undefined||(typeof amqv==='string'&&amqv.trim()===''))
+        issues.push({...base,issue:'AM Qualified Blank',sev:'med'});
+    }
+    if('ledBy' in d){
+      const lbv=d.ledBy;
+      if(lbv===null||lbv===undefined||(typeof lbv==='string'&&lbv.trim()===''))
+        issues.push({...base,issue:'Led By Blank',sev:'med'});
+    }
+    if(isPastDate(d.closeDate))
+      issues.push({...base,issue:'Past Close Date (still active)',sev:'med'});
+    // duplicate: same company + quarter + stage + owner + upsell type
+    const dupKey=`${(d.company||'').toLowerCase()}|${d.fiscalQuarter}|${d.dealStage||''}|${d.dealOwner||''}|${d.upsellType||''}`;
+    uSeen[dupKey]=(uSeen[dupKey]||0)+1;
+    d.__dKey=dupKey;
+  }
+  for(const d of (DATA.upsellDeals||[])){
+    if(uSeen[d.__dKey]>1)
+      issues.push({dealType:'Upsell',company:d.company,owner:d.dealOwner||'',pod:d.podLead||'',
+                   quarter:d.fiscalQuarter,stage:d.dealStage,fc:d.forecastCategory,
+                   upsellType:d.upsellType||'',dealId:d.dealId||'',dealName:d.dealName||'',
+                   amount:d.effectiveARR||d.amount,closeDate:d.closeDate,issue:'Possible Duplicate',sev:'med'});
+  }
+
+  // ── Unassigned pod deals (excluded from forecasts entirely) ──
+  for(const d of (DATA.unassignedDeals||[])){
+    issues.push({
+      dealType:d.dealType,
+      company:d.company,
+      owner:d.dealOwner||'',
+      pod:d.podLead||'',
+      quarter:d.fiscalQuarter,
+      stage:d.dealStage,
+      fc:d.forecastCategory,
+      upsellType:d.upsellType||'',
+      dealId:d.dealId||'',
+      dealName:d.dealName||'',
+      amount:d.amount,
+      closeDate:d.closeDate,
+      issue:'No Pod Lead Assigned',
+      sev:'high'
+    });
+  }
+
+  return issues;
+}
+
+const SEV_ORDER={high:0,med:1,low:2};
+const ISSUE_META={
+  'No Pod Lead Assigned':{sev:'high',icon:'🚨'},
+  'Blank Deal Owner':{sev:'high',icon:'👤'},
+  'Blank Pod Lead':{sev:'high',icon:'🏠'},
+  'Unknown Pod Lead':{sev:'high',icon:'❓'},
+  'One-Time Fee Not Set':{sev:'high',icon:'💲'},
+  'Blank Forecast Category':{sev:'high',icon:'🏷'},
+  'Blank / Zero Amount':{sev:'high',icon:'💰'},
+  'Upsell Type Not Set':{sev:'med',icon:'📋'},
+  'AM Qualified Blank':{sev:'med',icon:'🙋'},
+  'Led By Blank':{sev:'med',icon:'👆'},
+  'Past Close Date (still active)':{sev:'med',icon:'📅'},
+  'Possible Duplicate':{sev:'med',icon:'🔁'},
+};
+
+function renderQuality(){
+  const allIssues=runDQChecks();
+  updateDQBadge(allIssues.length);
+
+  // Distinct filter values from ALL issues (always show full dropdown options)
+  const allPods=[...new Set(allIssues.map(i=>i.pod).filter(Boolean))].sort();
+  const allQtrs=[...new Set(allIssues.map(i=>i.quarter).filter(Boolean))].sort();
+  const allTypes=[...new Set(allIssues.map(i=>i.dealType).filter(Boolean))].sort();
+
+  // Apply pod/quarter/type filters first — tile counts reflect these
+  let issues=[...allIssues];
+  if(dqFilterPod)   issues=issues.filter(i=>i.pod===dqFilterPod);
+  if(dqFilterQ)     issues=issues.filter(i=>i.quarter===dqFilterQ);
+  if(dqFilterType)  issues=issues.filter(i=>i.dealType===dqFilterType);
+
+  // Compute tile counts from post-filter set (so tiles update when pod/quarter/type filter changes)
+  const issueGroups={};
+  for(const i of issues){issueGroups[i.issue]=(issueGroups[i.issue]||0)+1;}
+
+  // Apply issue-type filter last (tile clicks)
+  if(dqFilterIssue) issues=issues.filter(i=>i.issue===dqFilterIssue);
+
+  // Sort
+  const parseDDMMYYYY=ds=>{if(!ds)return 0;const p=ds.split('/');return p.length===3?new Date(+p[2],+p[1]-1,+p[0]).getTime():0;};
+  issues.sort((a,b)=>{
+    if(dqSort==='amount_desc') return (b.amount||0)-(a.amount||0);
+    if(dqSort==='amount_asc')  return (a.amount||0)-(b.amount||0);
+    if(dqSort==='close_asc')   return parseDDMMYYYY(a.closeDate)-parseDDMMYYYY(b.closeDate);
+    if(dqSort==='close_desc')  return parseDDMMYYYY(b.closeDate)-parseDDMMYYYY(a.closeDate);
+    if(dqSort==='company_asc') return (a.company||'').localeCompare(b.company||'');
+    if(dqSort==='quarter')     return (a.quarter||'').localeCompare(b.quarter||'')||(a.company||'').localeCompare(b.company||'');
+    // default: severity then company
+    return (SEV_ORDER[a.sev]||9)-(SEV_ORDER[b.sev]||9)||(a.company||'').localeCompare(b.company||'');
+  });
+
+  // Summary cards
+  const summaryCards=Object.entries(issueGroups).map(([label,cnt])=>{
+    const m=ISSUE_META[label]||{sev:'low',icon:'⚠'};
+    const col=m.sev==='high'?'var(--red)':m.sev==='med'?'var(--yellow)':'var(--muted)';
+    const isActive=dqFilterIssue===label;
+    return`<div class="dq-card${isActive?' active-filter':''}" onclick="dqFilterIssue=dqFilterIssue==='${label}'?'':'${label}';renderQuality()">
+      <div class="dqc-n" style="color:${col}">${cnt}</div>
+      <div class="dqc-l">${m.icon} ${label}</div>
+    </div>`;
+  }).join('');
+
+  // HubSpot portal ID helper
+  const hsPortal=HS_PORTAL_ID;
+  function dealLink(id,name){
+    if(!id) return name||'—';
+    const label=name||id;
+    if(!hsPortal) return `<span title="Set HubSpot Portal ID above to enable links">${label}</span>`;
+    return `<a href="https://app.hubspot.com/contacts/${hsPortal}/deal/${id}" target="_blank" rel="noopener noreferrer" style="color:var(--accent);text-decoration:underline;text-underline-offset:2px" title="Open in HubSpot">${label} ↗</a>`;
+  }
+
+  // Filters + sort bar
+  const opt=(v,sel,lbl)=>`<option value="${v}"${sel===v?' selected':''}>${lbl}</option>`;
+  const filterBar=`<div class="log-filters">
+    <span class="flab">Filter:</span>
+    <select onchange="dqFilterPod=this.value;renderQuality()">
+      <option value="">All Pods</option>${allPods.map(p=>opt(p,dqFilterPod,p)).join('')}
+    </select>
+    <select onchange="dqFilterQ=this.value;renderQuality()">
+      <option value="">All Quarters</option>${allQtrs.map(q=>opt(q,dqFilterQ,q)).join('')}
+    </select>
+    <select onchange="dqFilterType=this.value;renderQuality()">
+      <option value="">All Types</option>${allTypes.map(t=>opt(t,dqFilterType,t)).join('')}
+    </select>
+    <div class="log-actions">
+      <button class="log-clear" onclick="dqFilterIssue='';dqFilterPod='';dqFilterQ='';dqFilterType='';dqSort='sev_company';renderQuality()">Clear Filters</button>
+    </div>
+  </div>`;
+
+  let body='';
+  if(issues.length===0){
+    body=`<div class="log-empty"><div class="le-icon">✅</div><p>No issues found${dqFilterIssue||dqFilterPod||dqFilterQ||dqFilterType?' with current filters':' in the data'}.</p></div>`;
+  } else {
+    const rows=issues.map(iss=>{
+      const m=ISSUE_META[iss.issue]||{sev:'low',icon:'⚠'};
+      const col=m.sev==='high'?'var(--red)':m.sev==='med'?'var(--yellow)':'var(--muted)';
+      const typePill=iss.dealType==='Renewal'?`<span class="tag cm">Renewal</span>`:`<span class="tag cw">Upsell</span>`;
+      const sevDot=`<span class="sev-dot ${m.sev}"></span>`;
+      const color=POD_COLORS[iss.pod]||'#6c63ff';
+      const podBadge=iss.pod?`<div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:50%;background:${color}"></div>${iss.pod}</div>`:'<span style="color:var(--red)">—</span>';
+      return`<tr>
+        <td><div style="display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;font-weight:600;color:${col}">${sevDot}${m.icon} ${iss.issue}</div></td>
+        <td>${typePill}</td>
+        <td style="font-weight:600;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${iss.company}">${iss.company||'—'}</td>
+        <td style="font-size:11px">${dealLink(iss.dealId,iss.dealId)}</td>
+        <td style="font-size:12px;color:var(--muted)">${iss.owner||'—'}</td>
+        <td>${podBadge}</td>
+        <td style="font-size:11px;color:var(--muted)">${iss.quarter||'—'}</td>
+        <td style="font-size:11px">${iss.stage||'—'}</td>
+        <td style="font-size:11px;color:var(--muted)">${iss.fc||'—'}</td>
+        <td style="font-size:11px;color:var(--muted)">${iss.upsellType||'—'}</td>
+        <td style="font-weight:600">${fmt(iss.amount)}</td>
+        <td style="font-size:11px;color:${isPastCloseDate(iss.closeDate)?'var(--red)':'var(--muted)'}">${iss.closeDate||'—'}</td>
+      </tr>`;
+    }).join('');
+    body=`
+      <div class="log-count" style="margin-bottom:12px">${issues.length} issue${issues.length!==1?'s':''} shown${dqFilterIssue?` · filtered: ${dqFilterIssue}`:''}</div>
+      <div class="mwrap" style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th style="text-align:left;min-width:200px">Issue</th>
+            <th style="text-align:left">Type</th>
+            <th style="text-align:left">Account</th>
+            <th style="text-align:left">Deal ID</th>
+            <th style="text-align:left">Owner</th>
+            <th style="text-align:left">Pod</th>
+            <th style="text-align:left">Quarter</th>
+            <th style="text-align:left">Stage</th>
+            <th style="text-align:left">FC</th>
+            <th style="text-align:left">Upsell Type</th>
+            <th>Amount</th>
+            <th style="text-align:left">Close Date</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  const portalBanner='';
+
+  document.getElementById('app').innerHTML=`
+    <div class="log-page">
+      <div class="ttl" style="margin-bottom:16px">Data Hygiene — flagged issues that may impact forecast accuracy</div>
+      <div class="dq-summary">${summaryCards}</div>
+      ${filterBar}
+      ${portalBanner}
+      ${body}
+    </div>`;
+}
+
+function isPastCloseDate(ds){
+  if(!ds||ds==='')return false;
+  const p=ds.split('/');if(p.length!==3)return false;
+  const d=new Date(+p[2],+p[1]-1,+p[0]);
+  const t=new Date();t.setHours(0,0,0,0);
+  return !isNaN(d.getTime())&&d.getFullYear()>=2000&&d<t;
+}
+
+function clearLog(){
+  const pin=prompt('Enter admin PIN to clear the log:');
+  if(pin===null)return;
+  if(pin!=='SD2027'){alert('Incorrect PIN.');return;}
+  if(!confirm('Clear all change log entries? This cannot be undone.'))return;
+  try{localStorage.removeItem(LOG_KEY);}catch(_){}
+  clearUnread();
+  renderLog();
+}
+
+// ── FC tag style helper ───────────────────────────────────────────────────────
+function fcClass(fc){
+  const f=(fc||'').toLowerCase();
+  if(f==='renewed'||f==='closed won')return'rn';
+  if(f==='commit')return'cm';
+  if(f.includes('touch'))return'tg';
+  if(f==='churned'||f==='closed lost')return'ch';
+  if(f==='best case'||f==='best_case')return'bc';
+  if(f==='downgrade')return'dn';
+  return'pp';
+}
+
+// ── Log renderer ──────────────────────────────────────────────────────────────
+function renderLog(){
+  let entries=loadLog();
+
+  // Collect distinct values for filters
+  const pods=[...new Set(entries.map(e=>e.podLead).filter(Boolean))].sort();
+  const quarters=[...new Set(entries.map(e=>e.fiscalQuarter).filter(Boolean))].sort();
+  const cats=[...new Set([...entries.map(e=>e.oldFC),...entries.map(e=>e.newFC)].filter(Boolean))].sort();
+
+  // Apply filters
+  if(logFilterPod) entries=entries.filter(e=>e.podLead===logFilterPod);
+  if(logFilterQ)   entries=entries.filter(e=>e.fiscalQuarter===logFilterQ);
+  if(logFilterCat) entries=entries.filter(e=>e.oldFC===logFilterCat||e.newFC===logFilterCat);
+  if(logFilterType)entries=entries.filter(e=>e.dealType===logFilterType);
+
+  const opt=(v,sel,label)=>`<option value="${v}"${sel===v?' selected':''}>${label}</option>`;
+  const podOpts=pods.map(p=>opt(p,logFilterPod,p)).join('');
+  const qOpts=quarters.map(q=>opt(q,logFilterQ,q)).join('');
+  const catOpts=cats.map(c=>opt(c,logFilterCat,c)).join('');
+
+  const filters=`
+    <div class="log-filters">
+      <span class="flab">Filter:</span>
+      <select onchange="logFilterPod=this.value;renderLog()">
+        <option value="">All Pods</option>${podOpts}
+      </select>
+      <select onchange="logFilterQ=this.value;renderLog()">
+        <option value="">All Quarters</option>${qOpts}
+      </select>
+      <select onchange="logFilterCat=this.value;renderLog()">
+        <option value="">Any Category</option>${catOpts}
+      </select>
+      <select onchange="logFilterType=this.value;renderLog()">
+        <option value="">All Types</option>
+        <option value="Renewal"${logFilterType==='Renewal'?' selected':''}>Renewal</option>
+        <option value="Upsell"${logFilterType==='Upsell'?' selected':''}>Upsell</option>
+      </select>
+      <div class="log-actions">
+        <button class="log-clear" onclick="clearLog()">Clear Log</button>
+      </div>
+    </div>`;
+
+  let body='';
+  if(entries.length===0){
+    body=`<div class="log-empty">
+      <div class="le-icon">📋</div>
+      <p>No changes recorded yet.<br>Changes are detected each time you <b>Refresh</b> data<br>and a deal's forecast category has shifted.</p>
+    </div>`;
+  } else {
+    const rows=entries.map(e=>{
+      const d=new Date(e.detectedAt);
+      const when=d.toLocaleString('en-IN',{day:'numeric',month:'short',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+      const color=POD_COLORS[e.podLead]||'#6c63ff';
+      const podBadge=`<div style="display:flex;align-items:center;gap:6px"><div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0"></div>${e.podLead||'—'}</div>`;
+      const typePill=e.dealType==='Renewal'
+        ?`<span class="tag cm">Renewal</span>`
+        :`<span class="tag cw">Upsell</span>`;
+      const fcChange=`<div class="arrow-chip">
+        <span class="old">${e.oldFC||'—'}</span>
+        <span class="arr">→</span>
+        <span class="new tag ${fcClass(e.newFC)}">${e.newFC||'—'}</span>
+      </div>`;
+      return`<tr>
+        <td style="color:var(--muted);font-size:11px;white-space:nowrap">${when}</td>
+        <td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${e.company}">${e.company}</td>
+        <td>${podBadge}</td>
+        <td style="font-size:11px;color:var(--muted)">${e.fiscalQuarter}</td>
+        <td>${typePill}</td>
+        <td>${fmt(e.amount)}</td>
+        <td>${fcChange}</td>
+      </tr>`;
+    }).join('');
+    body=`
+      <div class="log-count">${entries.length} change${entries.length!==1?'s':''} shown</div>
+      <div class="mwrap" style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th style="text-align:left">Detected At</th>
+            <th style="text-align:left">Company</th>
+            <th style="text-align:left">Pod</th>
+            <th style="text-align:left">Quarter</th>
+            <th style="text-align:left">Type</th>
+            <th>ARR</th>
+            <th style="text-align:left">FC Change</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  document.getElementById('app').innerHTML=`
+    <div class="log-page">
+      <div class="ttl" style="margin-bottom:16px">FC Change Log — tracks forecast category shifts on each Refresh</div>
+      ${filters}
+      ${body}
+    </div>`;
+}
+
+// ── Override mode helpers ─────────────────────────────────────────────────────
+function setOverrideMode(val){
+  overrideMode=val;
+  render(); // render() rebuilds qtabs with correct button states
+}
+
+function effFC(d){
+  if(overrideMode && d.overrideFC && d.overrideFC.trim()) return d.overrideFC.trim();
+  return (d.forecastCategory||'');
+}
+function effAmount(d, isUpsell){
+  if(overrideMode && d.overrideAmount!==null && d.overrideAmount!==undefined && d.overrideAmount!=='') return parseFloat(d.overrideAmount)||0;
+  return isUpsell ? (d.effectiveARR||d.annualisedARR||d.amount||0) : (d.amount||0);
+}
+function effMonth(d){
+  if(overrideMode && d.overrideMonth && d.overrideMonth.trim()) return d.overrideMonth.trim();
+  return d.closeMonth||'';
+}
+
+// ── Override page state ───────────────────────────────────────────────────────
+let ovrEditMode=false;
+let ovrDirty={};      // dealId → 'edit' | 'clear'
+let ovrDealMap={};    // dealId → deal object (populated on render)
+let ovrFilterType='';
+let ovrFilterOvrOnly=false;
+
+function ovrSignIn(){
+  const lead=document.getElementById('ovrPodLead')?.value;
+  const pin=document.getElementById('ovrPin')?.value;
+  const errEl=document.getElementById('ovrPinErr');
+  if(!lead){if(errEl){errEl.style.display='inline';errEl.textContent='Select a pod lead';}return;}
+  if(pin!==OVERRIDE_PIN){if(errEl){errEl.style.display='inline';errEl.textContent='Incorrect PIN';}return;}
+  overrideAuth={podLead:lead};
+  try{sessionStorage.setItem('ovrAuth',JSON.stringify(overrideAuth));}catch(e){}
+  ovrEditMode=false; ovrDirty={}; ovrFilterType='Upsell'; ovrFilterOvrOnly=false;
+  renderOverrides();
+}
+
+function overrideSignOut(){
+  overrideAuth=null; ovrEditMode=false; ovrDirty={};
+  try{sessionStorage.removeItem('ovrAuth');}catch(e){}
+  renderOverrides();
+}
+
+// Returns ['May-26','Jun-26','Jul-26'] for 'Q1-FY2027' (FY runs May–Apr: Q1=May/Jun/Jul, Q2=Aug/Sep/Oct, Q3=Nov/Dec/Jan, Q4=Feb/Mar/Apr)
+function getQuarterMonths(q){
+  const m=/Q(\d)-FY(\d{4})/.exec(q||''); if(!m) return [];
+  const qn=+m[1], fy=+m[2];
+  const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const map={1:[[4,fy-1],[5,fy-1],[6,fy-1]],2:[[7,fy-1],[8,fy-1],[9,fy-1]],3:[[10,fy-1],[11,fy-1],[0,fy]],4:[[1,fy],[2,fy],[3,fy]]};
+  return (map[qn]||[]).map(([mi,yr])=>mo[mi]+'-'+String(yr).slice(2));
+}
+function ovrSetType(t){ovrFilterType=ovrFilterType===t?'':t;renderOverrides();}
+function ovrClearFilters(){ovrFilterType='';ovrFilterOvrOnly=false;renderOverrides();}
+
+function ovrToggleEdit(){
+  ovrEditMode=!ovrEditMode; ovrDirty={};
+  renderOverrides();
+}
+
+function ovrMarkDirty(dealId){
+  ovrDirty[dealId]='edit';
+  const btn=document.getElementById('ovrSaveBtn');
+  if(btn){
+    const n=Object.keys(ovrDirty).length;
+    btn.textContent='Save Changes ('+n+')';
+    btn.style.opacity='1'; btn.disabled=false;
+  }
+}
+
+function ovrMarkClear(dealId){
+  if(ovrDirty[dealId]==='clear'){
+    // Undo clear
+    delete ovrDirty[dealId];
+    const row=document.getElementById('ovrRow_'+dealId);
+    if(row) row.style.opacity='1';
+    const btn=document.getElementById('ovrClearBtn_'+dealId);
+    if(btn){btn.textContent='Clear override';btn.style.color='';}
+  } else {
+    ovrDirty[dealId]='clear';
+    const row=document.getElementById('ovrRow_'+dealId);
+    if(row) row.style.opacity='0.45';
+    const btn=document.getElementById('ovrClearBtn_'+dealId);
+    if(btn){btn.textContent='↩ Undo clear';btn.style.color='var(--accent)';}
+  }
+  const saveBtn=document.getElementById('ovrSaveBtn');
+  if(saveBtn){
+    const n=Object.keys(ovrDirty).length;
+    saveBtn.textContent='Save Changes ('+n+')';
+    saveBtn.style.opacity=n>0?'1':'0.5'; saveBtn.disabled=n===0;
+  }
+}
+
+async function ovrSaveAll(){
+  const saveBtn=document.getElementById('ovrSaveBtn');
+  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='Saving...';}
+  const nowStr=new Date().toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const bodies=[];
+  for(const dealId of Object.keys(ovrDirty)){
+    const d=ovrDealMap[dealId]; if(!d) continue;
+    const amtRaw=d._type==='Upsell'?(d.effectiveARR||d.annualisedARR||d.amount||0):(d.amount||0);
+    let body;
+    if(ovrDirty[dealId]==='clear'){
+      body={dealId,dealType:d._type,action:'clear',overrideBy:overrideAuth.podLead,company:d.company||'',
+            quarter:d.fiscalQuarter||activeQ,oldFC:d.overrideFC||'',oldAmount:d.overrideAmount!=null?d.overrideAmount:'',oldMonth:d.overrideMonth||''};
+      const arr=d._type==='Renewal'?DATA.renewalDeals:DATA.upsellDeals;
+      const rec=arr.find(x=>x.dealId===dealId);
+      if(rec){rec.overrideFC='';rec.overrideAmount=null;rec.overrideMonth='';rec.overrideBy='';rec.overrideAt='';}
+    } else {
+      const newFC=document.getElementById('ovrFC_'+dealId)?.value||'';
+      const newAmt=document.getElementById('ovrAmt_'+dealId)?.value||'';
+      const newMo=document.getElementById('ovrMo_'+dealId)?.value||'';
+      body={dealId,dealType:d._type,overrideFC:newFC,overrideAmount:newAmt?parseFloat(newAmt):'',overrideMonth:newMo,
+            overrideBy:overrideAuth.podLead,company:d.company||'',quarter:d.fiscalQuarter||activeQ,
+            oldFC:d.forecastCategory||'',oldAmount:amtRaw,oldMonth:d.closeMonth||''};
+      const arr=d._type==='Renewal'?DATA.renewalDeals:DATA.upsellDeals;
+      const rec=arr.find(x=>x.dealId===dealId);
+      if(rec){rec.overrideFC=newFC;rec.overrideAmount=newAmt?parseFloat(newAmt):null;
+              rec.overrideMonth=newMo;rec.overrideBy=overrideAuth.podLead;rec.overrideAt=nowStr;}
+    }
+    bodies.push(body);
+  }
+  try{
+    IS_APPSCRIPT ? await gsRun('handleClientOverrides',bodies) : await jsonpOverride(bodies);
+  }catch(err){console.error('Override save error:',err);}
+  ovrDirty={}; ovrEditMode=false;
+  render();          // update dashboard tiles
+  renderOverrides(); // re-render table
+}
+
+async function ovrClearAll(){
+  let deals=[
+    ...(DATA.renewalDeals||[]).map(d=>({...d,_type:'Renewal'})),
+    ...(DATA.upsellDeals||[]).map(d=>({...d,_type:'Upsell'}))
+  ];
+  if(ovrFilterType) deals=deals.filter(d=>d._type===ovrFilterType);
+  const withOvr=deals.filter(d=>d.overrideFC||d.overrideAmount!=null||d.overrideMonth);
+  if(!withOvr.length){alert('No overrides to clear.');return;}
+  if(!confirm(`Clear all ${withOvr.length} override(s) in the current view? This cannot be undone.`)) return;
+  const bodies=withOvr.map(d=>{
+    const arr=d._type==='Renewal'?DATA.renewalDeals:DATA.upsellDeals;
+    const rec=arr.find(x=>x.dealId===d.dealId);
+    if(rec){rec.overrideFC='';rec.overrideAmount=null;rec.overrideMonth='';rec.overrideBy='';rec.overrideAt='';}
+    return{dealId:d.dealId,dealType:d._type,action:'clear',overrideBy:overrideAuth.podLead,company:d.company||'',
+           quarter:d.fiscalQuarter||activeQ,oldFC:d.overrideFC||'',oldAmount:d.overrideAmount!=null?d.overrideAmount:'',oldMonth:d.overrideMonth||''};
+  });
+  try{
+    IS_APPSCRIPT ? await gsRun('handleClientOverrides',bodies) : await jsonpOverride(bodies);
+  }catch(err){console.error('Clear all error:',err);}
+  render();
+  renderOverrides();
+}
+
+// ── Overrides page renderer ───────────────────────────────────────────────────
+function renderOverrides(){
+  const main=document.getElementById('app');
+  ovrDealMap={}; // reset deal map each render
+
+  // Auth bar
+  const authHtml=overrideAuth
+    ?`<div style="display:flex;align-items:center;gap:12px;background:rgba(108,99,255,.08);border:1px solid var(--accent);border-radius:8px;padding:10px 16px;margin-bottom:16px">
+        <span style="font-size:13px;color:var(--accent)">🔐 Signed in as <strong>${overrideAuth.podLead}</strong> (Pod Lead)</span>
+        <button onclick="overrideSignOut()" style="margin-left:auto;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 12px;border-radius:6px;cursor:pointer;font-size:12px">Sign Out</button>
+      </div>`
+    :`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <select id="ovrPodLead" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:7px 12px;border-radius:6px;font-size:13px">
+            <option value="">POD Lead</option>
+            ${POD_LEADS_LIST.map(n=>`<option value="${n}">${n}</option>`).join('')}
+          </select>
+          <input id="ovrPin" type="password" placeholder="Enter PIN" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:7px 12px;border-radius:6px;font-size:13px;width:140px" onkeydown="if(event.key==='Enter')ovrSignIn()"/>
+          <button onclick="ovrSignIn()" style="background:var(--accent);color:#fff;border:none;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">Sign In</button>
+          <span id="ovrPinErr" style="color:#ef4444;font-size:12px;display:none"></span>
+        </div>
+      </div>`;
+
+  // Gather active deals
+  const q=activeQ;
+  const allDeals=[];
+  (DATA.renewalDeals||[]).filter(d=>d.fiscalQuarter===q).forEach(d=>{
+    const stL=(d.dealStage||'').toLowerCase();
+    if(stL==='renewed'||stL==='churned') return;
+    allDeals.push({...d,_type:'Renewal'});
+  });
+  (DATA.upsellDeals||[]).filter(d=>d.fiscalQuarter===q).forEach(d=>{
+    const stL=(d.dealStage||'').toLowerCase();
+    if(stL==='closed won'||stL==='closed lost') return;
+    const otf=(d.oneTimeFeeRaw||'').toLowerCase();
+    if(otf==='yes'||otf==='true'||otf==='1'||d.oneTimeFee===true) return;
+    allDeals.push({...d,_type:'Upsell'});
+  });
+
+  // Sort: CSM (dealOwner) → Company → FC
+  allDeals.sort((a,b)=>{
+    const oa=(a.dealOwner||'').toLowerCase(),ob=(b.dealOwner||'').toLowerCase();
+    if(oa<ob)return -1;if(oa>ob)return 1;
+    const ca=(a.company||'').toLowerCase(),cb=(b.company||'').toLowerCase();
+    if(ca<cb)return -1;if(ca>cb)return 1;
+    const fa=(a.forecastCategory||'').toLowerCase(),fb=(b.forecastCategory||'').toLowerCase();
+    return fa<fb?-1:fa>fb?1:0;
+  });
+
+  // When authed: always filter to their pod only; others see all
+  let filtDeals=overrideAuth ? allDeals.filter(d=>d.podLead===overrideAuth.podLead) : allDeals;
+  if(ovrFilterType) filtDeals=filtDeals.filter(d=>d._type===ovrFilterType);
+  if(ovrFilterOvrOnly) filtDeals=filtDeals.filter(d=>d.overrideFC||(d.overrideAmount!==null&&d.overrideAmount!=='')||d.overrideMonth);
+
+  // Populate deal map for save lookups
+  filtDeals.forEach(d=>{ ovrDealMap[d.dealId]=d; });
+
+  // FC options
+  const renewalFCOpts=['Commit','Touch n Go','Downgrade','Churn','Best Case'];
+  const upsellFCOpts=['Commit','Touch n Go','Best Case'];
+
+  // Filter bar
+  const btnStyle=(active)=>`padding:5px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid ${active?'var(--accent)':'var(--border)'};background:${active?'var(--accent)':'var(--surface2)'};color:${active?'#fff':'var(--text)'}`;
+  const filterBar=`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+    <button onclick="ovrSetType('Renewal')" style="${btnStyle(ovrFilterType==='Renewal')}">Renewal</button>
+    <button onclick="ovrSetType('Upsell')" style="${btnStyle(ovrFilterType==='Upsell')}">Upsell</button>
+    <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);cursor:pointer;padding:5px 10px;background:var(--surface2);border:1px solid ${ovrFilterOvrOnly?'var(--accent)':'var(--border)'};border-radius:6px">
+      <input type="checkbox" onchange="ovrFilterOvrOnly=this.checked;renderOverrides()"${ovrFilterOvrOnly?' checked':''}/>
+      Overridden only
+    </label>
+    ${(ovrFilterType||ovrFilterOvrOnly)?`<button onclick="ovrClearFilters()" style="padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--muted)">✕ Clear Filters</button>`:''}
+    <span style="margin-left:auto;font-size:12px;color:var(--muted)">${filtDeals.length} deals · ${q}</span>
+    ${overrideAuth?`<button onclick="ovrToggleEdit()" style="${btnStyle(ovrEditMode)}">✏️ ${ovrEditMode?'Exit Edit':'Edit Mode'}</button>`:''}
+    ${(overrideAuth&&ovrEditMode)?`<button onclick="ovrClearAll()" style="padding:5px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #e55;background:var(--surface2);color:#e55">🗑 Clear All</button>`:''}
+  </div>`;
+
+  // Edit mode action bar
+  const editBar=ovrEditMode?`<div style="display:flex;gap:10px;align-items:center;background:rgba(108,99,255,.08);border:1px solid var(--accent);border-radius:8px;padding:10px 16px;margin-bottom:12px">
+    <span style="font-size:12px;color:var(--accent)">✏️ Edit mode — modify FC, Amount, Month across all rows. Click Save when done.</span>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button id="ovrSaveBtn" onclick="ovrSaveAll()" disabled style="background:var(--accent);color:#fff;border:none;padding:6px 18px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;opacity:0.5">Save Changes</button>
+      <button onclick="ovrToggleEdit()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px">Cancel</button>
+    </div>
+  </div>`:'';
+
+  // Table rows
+  const rows=filtDeals.map(d=>{
+    const hasOvr=!!(d.overrideFC||(d.overrideAmount!==null&&d.overrideAmount!==undefined&&d.overrideAmount!=='')||d.overrideMonth);
+    const amtRaw=d._type==='Upsell'?(d.effectiveARR||d.annualisedARR||d.amount||0):(d.amount||0);
+    const fcOpts=d._type==='Renewal'?renewalFCOpts:upsellFCOpts;
+    // Default values: override if set, otherwise current baseline
+    const defaultFC=d.overrideFC||d.forecastCategory||'';
+    const defaultAmt=(d.overrideAmount!==null&&d.overrideAmount!==undefined&&d.overrideAmount!=='')?d.overrideAmount:amtRaw;
+    const defaultMo=d.overrideMonth||d.closeMonth||'';
+
+    const fcCell=ovrEditMode
+      ?`<select id="ovrFC_${d.dealId}" onchange="ovrMarkDirty('${d.dealId}')" style="background:var(--surface);border:1px solid var(--accent);color:var(--text);padding:4px 6px;border-radius:5px;font-size:12px;width:100%">
+          ${fcOpts.map(o=>`<option value="${o}"${defaultFC===o?' selected':''}>${o}</option>`).join('')}
+        </select>`
+      :(hasOvr&&d.overrideFC
+        ?`<span style="text-decoration:line-through;color:var(--muted);font-size:11px">${d.forecastCategory||'—'}</span> <span style="color:var(--accent);font-weight:600">${d.overrideFC}</span>`
+        :(d.forecastCategory||'—'));
+
+    const amtCell=ovrEditMode
+      ?`<input id="ovrAmt_${d.dealId}" type="text" inputmode="decimal" value="${defaultAmt}" onchange="ovrMarkDirty('${d.dealId}')" style="background:var(--surface);border:1px solid var(--accent);color:var(--text);padding:4px 6px;border-radius:5px;font-size:12px;width:90px;text-align:right"/>`
+      :((hasOvr&&d.overrideAmount!==null&&d.overrideAmount!==undefined&&d.overrideAmount!=='')
+        ?`<span style="text-decoration:line-through;color:var(--muted);font-size:11px">${fmt(amtRaw)}</span> <span style="color:var(--accent);font-weight:600">${fmt(parseFloat(d.overrideAmount)||0)}</span>`
+        :fmt(amtRaw));
+
+    const qMonths=getQuarterMonths(activeQ);
+    const moCell=ovrEditMode
+      ?`<select id="ovrMo_${d.dealId}" onchange="ovrMarkDirty('${d.dealId}')" style="background:var(--surface);border:1px solid var(--accent);color:var(--text);padding:4px 6px;border-radius:5px;font-size:12px">${qMonths.map(mo=>`<option value="${mo}"${defaultMo===mo?' selected':''}>${mo}</option>`).join('')}</select>`
+      :((hasOvr&&d.overrideMonth)
+        ?`<span style="text-decoration:line-through;color:var(--muted);font-size:11px">${d.closeMonth||'—'}</span> <span style="color:var(--accent);font-weight:600">${d.overrideMonth}</span>`
+        :(d.closeMonth||'—'));
+
+    const clearCell=ovrEditMode&&hasOvr
+      ?`<button id="ovrClearBtn_${d.dealId}" onclick="ovrMarkClear('${d.dealId}')" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;text-decoration:underline;white-space:nowrap">Clear override</button>`
+      :'';
+
+    return `<tr id="ovrRow_${d.dealId}" class="${hasOvr?'ovr-active':''}">
+      <td><span class="tag ${d._type==='Renewal'?'r':'u'}" style="font-size:10px">${d._type[0]}</span>${hasOvr?` <span class="tag cm" style="font-size:9px">OVR</span>`:''}</td>
+      <td style="font-weight:500">${d.company||'—'}</td>
+      <td style="color:var(--muted);font-size:12px">${d.dealOwner||'—'}</td>
+      <td style="font-size:12px;color:var(--muted)">${d.dealStage||'—'}</td>
+      <td style="font-size:11px;color:var(--muted)">${d.upsellType||'—'}</td>
+      <td>${moCell}</td>
+      <td>${fcCell}</td>
+      <td>${amtCell}</td>
+      <td style="color:var(--muted);font-size:12px">${d.overrideBy||'—'}</td>
+      <td style="color:var(--muted);font-size:11px">${d.overrideAt||'—'}</td>
+      ${ovrEditMode?`<td style="white-space:nowrap">${clearCell}</td>`:''}
+    </tr>`;
+  }).join('');
+
+  const colCount=ovrEditMode?11:10;
+  const tableHtml=`<div style="overflow-x:auto;border-radius:12px;border:1px solid var(--border)">
+    <table class="tbl" style="width:100%;min-width:900px;table-layout:fixed">
+      <thead><tr>
+        <th style="width:60px">Type</th>
+        <th style="width:180px">Company</th>
+        <th style="width:110px">Owner</th>
+        <th style="width:130px">Stage</th>
+        <th style="width:120px">Upsell Type</th>
+        <th style="width:80px${ovrEditMode?';color:var(--accent)':''}">Month</th>
+        <th style="width:110px${ovrEditMode?';color:var(--accent)':''}">FC</th>
+        <th style="width:90px${ovrEditMode?';color:var(--accent)':''}">Amount</th>
+        <th style="width:110px">Override By</th>
+        <th style="width:110px">Override At</th>
+        ${ovrEditMode?'<th style="width:90px"></th>':''}
+      </tr></thead>
+      <tbody>${rows||`<tr><td colspan="${colCount}" style="text-align:center;padding:30px;color:var(--muted)">No active deals found for this filter</td></tr>`}</tbody>
+    </table>
+  </div>
+  <div style="margin-top:14px;padding:10px 14px;background:var(--surface2);border-radius:8px;font-size:12px;color:var(--muted)">
+    💡 Full audit trail in the <strong>Activity Log</strong> sheet in Google Sheets.
+  </div>`;
+
+  main.innerHTML=`<div class="log-page">
+    <div style="font-size:18px;font-weight:700;margin-bottom:16px;color:var(--text)">Forecast Overrides</div>
+    ${authHtml}${filterBar}${editBar}${tableHtml}
+  </div>`;
+}
+
+// ── CSM Aggregation ───────────────────────────────────────────────────────────
+function computeCSMAgg(q){
+  const agg={};
+  function get(csm){
+    if(!agg[csm]) agg[csm]={pods:new Set(),renewable:0,renewed:0,churned:0,commit:0,tng:0,churnForecast:0,downgraded:0,upsellCW:0,upsellCommit:0,upsellTNG:0,upsellBC:0,csql:0,renewalCount:0,upsellCount:0,upsellCommitCount:0,upsellTNGCount:0,upsellBCCount:0};
+    return agg[csm];
+  }
+  // Renewals
+  for(const d of (DATA.renewalDeals||[])){
+    if(d.fiscalQuarter!==q) continue;
+    const csm=d.dealOwner||'(Unassigned)';
+    const b=get(csm);
+    if(d.podLead) b.pods.add(d.podLead);
+    const stL=(d.dealStage||'').toLowerCase();
+    const fc=effFC(d).toLowerCase();
+    const baseAmt=d.amount||0;
+    const amt=effAmount(d,false);
+    b.renewalCount++;
+    b.renewable+=baseAmt; // renewable always uses original amount regardless of override
+    if(stL==='renewed') b.renewed+=(d.renewedARR||d.amount||0);
+    if(stL==='churned') b.churned+=baseAmt;
+    // active renewal: not renewed, not churned
+    if(stL!=='renewed'&&stL!=='churned'){
+      if(fc==='commit') b.commit+=amt;
+      if(fc.includes('touch')) b.tng+=amt;
+      if(fc==='churn') b.churnForecast+=amt;
+      if(fc==='downgrade') b.downgraded+=(d.overrideAmount!==null&&d.overrideAmount!==undefined&&d.overrideAmount!==''&&overrideMode?parseFloat(d.overrideAmount)||0:(d.downgradedARR||0));
+    }
+  }
+  // Upsells
+  for(const d of (DATA.upsellDeals||[])){
+    if(d.fiscalQuarter!==q) continue;
+    const csm=d.dealOwner||'(Unassigned)';
+    const b=get(csm);
+    if(d.podLead) b.pods.add(d.podLead);
+    const stL=(d.dealStage||'').toLowerCase();
+    const fc=effFC(d).toLowerCase();
+    if(stL!=='closed lost') b.upsellCount++;
+    const eArr=effAmount(d,true);
+    const otf=!!d.oneTimeFee;
+    if(stL==='closed won'&&!otf) b.upsellCW+=eArr;
+    // csql: count recurring (non-1x) upsell deals where amQualified==='yes' (excl. closed lost)
+    if((d.amQualified||'').toLowerCase()==='yes'&&!otf&&stL!=='closed lost') b.csql++;
+    // active upsell: not closed won, not closed lost
+    if(stL!=='closed won'&&stL!=='closed lost'&&!otf){
+      if(fc==='commit'){b.upsellCommit+=eArr;b.upsellCommitCount++;}
+      if(fc.includes('touch')){b.upsellTNG+=eArr;b.upsellTNGCount++;}
+      if(fc.includes('best')){b.upsellBC+=eArr;b.upsellBCCount++;}
+    }
+  }
+  return agg;
+}
+
+// ── CSM View renderer ─────────────────────────────────────────────────────────
+function renderCSMView(qtabsHTML,sumbarHTML,scenPanelHTML){
+  const agg=computeCSMAgg(activeQ);
+  // Collect distinct pods for filter dropdown
+  const allPods=[...new Set(Object.values(agg).flatMap(b=>[...b.pods]))].sort();
+  const allCSMs=Object.keys(agg).sort((a,b)=>a.localeCompare(b));
+
+  // Apply filters
+  let filtered=allCSMs;
+  if(csmFilterCSM) filtered=filtered.filter(c=>c===csmFilterCSM);
+  if(csmFilterPod)  filtered=filtered.filter(c=>agg[c].pods.has(csmFilterPod));
+
+  const opt=(v,sel,lbl)=>`<option value="${v}"${sel===v?' selected':''}>${lbl}</option>`;
+  const filterBar=`<div style="display:flex;align-items:center;gap:8px">
+    <select style="background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:12px;padding:5px 10px;border-radius:8px;outline:none;cursor:pointer" onchange="csmFilterCSM=this.value;render()">
+      <option value="">All CSMs</option>${allCSMs.map(c=>opt(c,csmFilterCSM,c)).join('')}
+    </select>
+    <select style="background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:12px;padding:5px 10px;border-radius:8px;outline:none;cursor:pointer" onchange="csmFilterPod=this.value;render()">
+      <option value="">All PODs</option>${allPods.map(p=>opt(p,csmFilterPod,p)).join('')}
+    </select>
+    ${(csmFilterCSM||csmFilterPod)?`<button class="icon-btn" onclick="csmFilterCSM='';csmFilterPod='';render()" style="font-size:11px;padding:4px 10px">✕</button>`:''}
+  </div>`;
+
+  const CSM_PALETTE=['#6c63ff','#00d4aa','#f97316','#3b82f6','#a855f7','#ec4899','#14b8a6','#f59e0b','#84cc16','#06b6d4'];
+  function csmCol(name){let h=0;for(let i=0;i<name.length;i++)h=(h*31+name.charCodeAt(i))%CSM_PALETTE.length;return CSM_PALETTE[Math.abs(h)];}
+  const rows=filtered.map(csm=>{
+    const b=agg[csm];
+    const grrVal=b.renewable>0?b.renewed/b.renewable:null;
+    const bcGRR=b.renewable>0?(b.renewed+b.commit+0.75*b.tng+b.downgraded)/b.renewable:null;
+    const wcGRR=b.renewable>0?(b.renewed+b.commit+b.downgraded)/b.renewable:null;
+    const grrCls=grrVal===null?'na':grrVal>=0.87?'green':grrVal>=0.85?'yellow':'red';
+    const bcCls=bcGRR===null?'na':bcGRR>=0.87?'green':bcGRR>=0.85?'yellow':'red';
+    const wcCls=wcGRR===null?'na':wcGRR>=0.87?'green':wcGRR>=0.85?'yellow':'red';
+    const grrDisp=grrVal===null?'—':pct(grrVal);
+    const ocFull=`openCSMModal('${csm.replace(/'/g,"\\'")}','r',null,null,null)`;
+    const tdA=(tab,ft,fv,lbl,val)=>`<td onclick="openCSMModal('${csm.replace(/'/g,"\\'")}','${tab}','${ft}','${fv}','${lbl}')" style="cursor:pointer"><span class="av">${fmt(val)}</span></td>`;
+    const initials=csm.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()||csm.slice(0,2).toUpperCase();
+    const avatarColor=[...b.pods][0]?(POD_COLORS[[...b.pods][0]]||csmCol(csm)):csmCol(csm);
+    return`<tr>
+      <td onclick="${ocFull}" style="cursor:pointer"><div class="pn"><div class="pa" style="background:${avatarColor}">${initials}</div><div><div class="av">${csm}</div><div class="pm">${b.renewalCount}R · ${b.upsellCount}U</div></div></div></td>
+      <td onclick="${ocFull}" style="cursor:pointer"><span class="chip ${grrCls}">${grrDisp}</span></td>
+      <td><span class="chip ${bcCls}">${bcGRR!==null?pct(bcGRR):'—'}</span></td>
+      <td><span class="chip ${wcCls}">${wcGRR!==null?pct(wcGRR):'—'}</span></td>
+      ${tdA('r','','','All Renewals',b.renewable)}
+      ${tdA('r','stage','Renewed','Renewed',b.renewed)}
+      ${tdA('r','fc','downgrade','Downgrade',b.downgraded)}
+      ${tdA('r','stage','Churned','Churned',b.churned)}
+      ${tdA('u','stage','closed won','Upsell Closed Won',b.upsellCW)}
+    </tr>`;
+  }).join('');
+
+  // Totals row
+  let tot={renewable:0,renewed:0,churned:0,commit:0,tng:0,downgraded:0,churnForecast:0,upsellCW:0,upsellCommit:0,upsellTNG:0,upsellBC:0,csql:0};
+  filtered.forEach(csm=>{const b=agg[csm];Object.keys(tot).forEach(k=>tot[k]+=(b[k]||0));});
+  const totGRR=tot.renewable>0?tot.renewed/tot.renewable:null;
+  const totBCGRR=tot.renewable>0?(tot.renewed+tot.commit+0.75*tot.tng+tot.downgraded)/tot.renewable:null;
+  const totWCGRR=tot.renewable>0?(tot.renewed+tot.commit+tot.downgraded)/tot.renewable:null;
+  const totGRRCls=totGRR===null?'na':totGRR>=0.9?'green':totGRR>=0.8?'yellow':'red';
+  const totBCCls=totBCGRR===null?'na':totBCGRR>=0.87?'green':totBCGRR>=0.85?'yellow':'red';
+  const totWCCls=totWCGRR===null?'na':totWCGRR>=0.87?'green':totWCGRR>=0.85?'yellow':'red';
+  const totRow=`<tr class="trow"><td>ALL CSMs</td>
+    <td><span class="chip ${totGRRCls}">${totGRR!==null?pct(totGRR):'—'}</span></td>
+    <td><span class="chip ${totBCCls}">${totBCGRR!==null?pct(totBCGRR):'—'}</span></td>
+    <td><span class="chip ${totWCCls}">${totWCGRR!==null?pct(totWCGRR):'—'}</span></td>
+    <td>${fmt(tot.renewable)}</td><td>${fmt(tot.renewed)}</td>
+    <td>${fmt(tot.downgraded)}</td><td>${fmt(tot.churned)}</td>
+    <td>${fmt(tot.upsellCW)}</td>
+  </tr>`;
+
+  // CSM view always uses its own 4-tile sumbar (updates with filter)
+  const csmSumSource=(csmFilterCSM||csmFilterPod)?filtered:allCSMs;
+  const flt={renewable:0,renewed:0,churned:0,commit:0,tng:0,churnForecast:0,downgraded:0,upsellCW:0,upsellCommit:0,upsellTNG:0,upsellBC:0,csql:0,renewalCount:0,upsellCount:0,upsellCommitCount:0,upsellTNGCount:0,upsellBCCount:0};
+  csmSumSource.forEach(c=>{const b=agg[c];Object.keys(flt).forEach(k=>flt[k]+=(b[k]||0));});
+  const fBCGRR=flt.renewable>0?(flt.renewed+flt.commit+0.75*flt.tng+flt.downgraded)/flt.renewable:null;
+  const fWCGRR=flt.renewable>0?(flt.renewed+flt.commit+flt.downgraded)/flt.renewable:null;
+  const grrBCCls=fBCGRR===null?'var(--accent)':fBCGRR>=0.87?'var(--green)':fBCGRR>=0.85?'var(--yellow)':'var(--red)';
+  const hasActivePipeline=flt.renewable>(flt.renewed+flt.churned);
+  // WC first, BC second (low → high)
+  const grrHasRange=fBCGRR!==null&&fWCGRR!==null&&Math.abs(fBCGRR-fWCGRR)>0.001;
+  const grrRange=fBCGRR!==null?(grrHasRange?pct(fWCGRR)+' – '+pct(fBCGRR):pct(fBCGRR)):'—';
+  const activeSumbarHTML=`
+    <div class="sc hi">
+      <div class="l">Book of Business</div>
+      <div class="v">${fmt(flt.renewable)||'—'}</div>
+      <div class="s">Renewed: ${fmt(flt.renewed)||'—'} &nbsp;·&nbsp; Churned: ${fmt(flt.churned)||'—'}</div>
+    </div>
+    <div class="sc hi">
+      <div class="l">GRR (WC – BC)</div>
+      <div class="v" style="color:${grrBCCls};font-size:${grrHasRange?'18px':'22px'}">${grrRange}</div>
+      <div class="s">${hasActivePipeline?`Commit: ${fmt(flt.commit)||'—'} &nbsp;·&nbsp; TNG: ${fmt(flt.tng)||'—'} &nbsp;·&nbsp; Downgrade: ${fmt(flt.downgraded)||'—'} &nbsp;·&nbsp; Churn: ${fmt(flt.churnForecast)||'—'}`:''}</div>
+    </div>
+    <div class="sc hi">
+      <div class="l">CSQL</div>
+      <div class="v">${flt.csql}</div>
+      <div class="s">Total ${flt.upsellCount} &nbsp;·&nbsp; Commit: ${flt.upsellCommitCount} &nbsp;·&nbsp; TNG: ${flt.upsellTNGCount} &nbsp;·&nbsp; BC: ${flt.upsellBCCount} &nbsp;·&nbsp; Pipeline: ${flt.upsellCommitCount+flt.upsellTNGCount+flt.upsellBCCount}</div>
+    </div>
+    <div class="sc hi">
+      <div class="l">Upsell Closed Won</div>
+      <div class="v" style="color:var(--accent2)">${fmt(flt.upsellCW)||'—'}</div>
+      <div class="s">Commit: ${fmt(flt.upsellCommit)||'—'} &nbsp;·&nbsp; TNG: ${fmt(flt.upsellTNG)||'—'} &nbsp;·&nbsp; BC: ${fmt(flt.upsellBC)||'—'}</div>
+    </div>`;
+
+  const toggleBtns='';
+
+  document.getElementById('app').innerHTML=`
+    <div class="qtabs"><div style="display:flex;gap:6px">${qtabsHTML}</div>
+    ${filterBar}</div>
+    <div class="tsec" style="padding-top:10px">
+      ${scenPanelHTML}
+      <div class="ttl" style="margin-bottom:10px">CSM View — ${activeQ}</div>
+      <div class="mwrap" style="overflow-x:auto"><table>
+        <thead><tr>
+          <th style="text-align:left;min-width:160px">CSM</th>
+          <th>GRR</th>
+          <th>BC GRR</th>
+          <th>WC GRR</th>
+          <th>Renewable</th>
+          <th>Renewed</th>
+          <th>Downgrade</th>
+          <!-- Commit and TNG removed -->
+          <th>Churned</th>
+          <th>Upsell CW</th>
+        </tr></thead>
+        <tbody>${rows}${totRow}</tbody>
+      </table></div>
+    </div>`;
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render(){
+  const{aggregates,meta}=DATA;
+  const quarters=meta.quarters||[];
+  if(!quarters.includes(activeQ)) activeQ=quarters[0];
+  if(meta.lastUpdated){
+    const d=new Date(meta.lastUpdated);
+    const el=document.getElementById('lastUpdated');
+    if(el) el.textContent='Last updated: '+d.toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    const ft=document.getElementById('pageFooter');
+    if(ft) ft.style.display='block';
+  }
+  const qData=aggregates[activeQ]||{};
+  const podLeads=meta.podLeads||Object.keys(qData);
+  const tabsHTML=quarters.map(q=>`<div class="qtab${q===activeQ?' active':''}" onclick="switchQ('${q}')">${q}</div>`).join('');
+  let tRA=0,tRn=0,tCm=0,tTG=0,tDg=0,tUCW=0,tUCm=0,tUTG=0,tUBC=0,tDeals=0;
+  for(const pod of podLeads){const b=qData[pod];if(!b)continue;tRA+=b.renewableARR||0;tRn+=b.renewedARR||0;tCm+=b.renewalCommit||0;tTG+=b.renewalTNG||0;tDg+=b.downgradedARR||0;tUCW+=b.upsellClosedWon||0;tUCm+=b.upsellCommit||0;tUTG+=b.upsellTNG||0;tUBC+=b.upsellBestCase||0;tDeals+=(b.renewalDealCount||0)+(b.upsellDealCount||0);}
+  // Override mode: delta approach — only adjust amounts that actually have overrides.
+  // This guarantees baseline=override when no overrides exist.
+  const podDeltas={}; // pod → {dCm,dTG,dDg,dUCm,dUTG,dUBC}
+  if(overrideMode){
+    for(const d of (DATA.renewalDeals||[])){
+      if(d.fiscalQuarter!==activeQ||!podLeads.includes(d.podLead)) continue;
+      const hasOvr=d.overrideFC||(d.overrideAmount!==null&&d.overrideAmount!==undefined&&d.overrideAmount!=='');
+      if(!hasOvr) continue;
+      const stL=(d.dealStage||'').toLowerCase();
+      if(stL==='renewed'||stL==='churned') continue;
+      const pod=d.podLead;
+      if(!podDeltas[pod]) podDeltas[pod]={dCm:0,dTG:0,dDg:0,dUCm:0,dUTG:0,dUBC:0};
+      const pd=podDeltas[pod];
+      const baseFC=(d.forecastCategory||'').toLowerCase();
+      const baseAmt=d.amount||0;
+      const hasOvrAmt=d.overrideAmount!==null&&d.overrideAmount!==undefined&&d.overrideAmount!=='';
+      const ovrFC=d.overrideFC?d.overrideFC.toLowerCase():baseFC;
+      const ovrAmt=hasOvrAmt?parseFloat(d.overrideAmount)||0:baseAmt;
+      if(baseFC==='commit') pd.dCm-=baseAmt;
+      else if(baseFC.includes('touch')) pd.dTG-=baseAmt;
+      else if(baseFC==='downgrade') pd.dDg-=(d.downgradedARR||0);
+      if(ovrFC==='commit') pd.dCm+=ovrAmt;
+      else if(ovrFC.includes('touch')) pd.dTG+=ovrAmt;
+      else if(ovrFC==='downgrade') pd.dDg+=hasOvrAmt?ovrAmt:(d.downgradedARR||0);
+    }
+    for(const d of (DATA.upsellDeals||[])){
+      if(d.fiscalQuarter!==activeQ||!podLeads.includes(d.podLead)) continue;
+      const hasOvr=d.overrideFC||(d.overrideAmount!==null&&d.overrideAmount!==undefined&&d.overrideAmount!=='');
+      if(!hasOvr) continue;
+      const stL=(d.dealStage||'').toLowerCase();
+      if(stL==='closed won'||stL==='closed lost') continue;
+      const pod=d.podLead;
+      if(!podDeltas[pod]) podDeltas[pod]={dCm:0,dTG:0,dDg:0,dUCm:0,dUTG:0,dUBC:0};
+      const pd=podDeltas[pod];
+      const baseFC=(d.forecastCategory||'').toLowerCase();
+      const baseEArr=d.effectiveARR||d.annualisedARR||d.amount||0;
+      const hasOvrAmt=d.overrideAmount!==null&&d.overrideAmount!==undefined&&d.overrideAmount!=='';
+      const ovrFC=d.overrideFC?d.overrideFC.toLowerCase():baseFC;
+      const ovrAmt=hasOvrAmt?parseFloat(d.overrideAmount)||0:baseEArr;
+      if(baseFC==='commit') pd.dUCm-=baseEArr;
+      else if(baseFC.includes('touch')) pd.dUTG-=baseEArr;
+      else if(baseFC.includes('best')) pd.dUBC-=baseEArr;
+      if(ovrFC==='commit') pd.dUCm+=ovrAmt;
+      else if(ovrFC.includes('touch')) pd.dUTG+=ovrAmt;
+      else if(ovrFC.includes('best')) pd.dUBC+=ovrAmt;
+    }
+    // Apply pod deltas to totals
+    for(const pd of Object.values(podDeltas)){
+      tCm+=pd.dCm; tTG+=pd.dTG; tDg+=pd.dDg;
+      tUCm+=pd.dUCm; tUTG+=pd.dUTG; tUBC+=pd.dUBC;
+    }
+  }
+  // Churned ARR — computed from deal list for the active quarter
+  const churnedDeals=(DATA.renewalDeals||[]).filter(d=>d.fiscalQuarter===activeQ&&podLeads.includes(d.podLead)&&d.dealStage==='Churned');
+  const tCh=churnedDeals.reduce((s,d)=>s+(d.amount||0),0);
+  const renewedDeals=(DATA.renewalDeals||[]).filter(d=>d.fiscalQuarter===activeQ&&podLeads.includes(d.podLead)&&(d.dealStage||'').toLowerCase()==='renewed');
+  const upsellCWDeals=(DATA.upsellDeals||[]).filter(d=>d.fiscalQuarter===activeQ&&podLeads.includes(d.podLead)&&(d.dealStage||'').toLowerCase()==='closed won');
+  const bcgV=tRA>0?(tRn+tCm+0.75*tTG+tDg)/tRA:null;
+  const wcgV=tRA>0?(tRn+tCm+tDg)/tRA:null;
+  const bcnV2=tRA>0?(tRn+tCm+0.75*tTG+tDg+tUCW+tUCm+0.75*tUTG+0.5*tUBC)/tRA:null;
+  const wcnV=tRA>0?(tRn+tCm+tDg+tUCW+tUCm)/tRA:null;
+  const bcg=bcgV!==null?pct(bcgV):'—';
+  const wcg=wcgV!==null?pct(wcgV):'—';
+  const bcn=bcnV2!==null?pct(bcnV2):'—';
+  const wcn=wcnV!==null?pct(wcnV):'—';
+  // Pre-compute scenario totals for the sumbar (SA/tScen computed later — compute inline here)
+  const _tBkt={renewableARR:tRA,renewedARR:tRn,renewalCommit:tCm,renewalTNG:tTG,downgradedARR:tDg,
+               upsellClosedWon:tUCW,upsellCommit:tUCm,upsellTNG:tUTG,upsellBestCase:tUBC};
+  const _sSumbar=isScenActive()?computeScen(_tBkt):null;
+  const _sg=_sSumbar?pct(_sSumbar.grr):null;
+  const _sn=_sSumbar?pct(_sSumbar.nrr):null;
+  const _sgDelta=_sSumbar&&bcgV?(_sSumbar.grr>=bcgV?'▲':'▼')+pct(Math.abs(_sSumbar.grr-bcgV))+' vs BC':null;
+  const _snDelta=_sSumbar&&bcnV2?(_sSumbar.nrr>=bcnV2?'▲':'▼')+pct(Math.abs(_sSumbar.nrr-bcnV2))+' vs BC':null;
+  // Color coding for summary tiles: GRR AOP=87%, NRR AOP=115%
+  const _bcgDisp=_sSumbar?_sSumbar.grr:bcgV;
+  const _wcgDisp=wcgV;
+  const _bcnDisp=_sSumbar?_sSumbar.nrr:bcnV2;
+  const _wcnDisp=wcnV;
+  const _grrCol=(v)=>v===null?'var(--muted)':v>=0.87?'var(--green)':v>=0.85?'var(--yellow)':'var(--red)';
+  const _nrrCol=(v)=>v===null?'var(--muted)':v>=1.15?'var(--green)':v>=1.05?'var(--yellow)':'var(--red)';
+  const sumbar=`
+    <div class="sc hi" style="${_sg?'border-color:var(--accent);background:rgba(108,99,255,.07)':''}">
+      <div class="l">${_sg?'⚡ Scenario GRR':'Best Case GRR'}</div>
+      <div class="v" style="color:${_grrCol(_bcgDisp)}">${_sg||bcg}</div>
+    </div>
+    <div class="sc hi"><div class="l">Worst Case GRR</div><div class="v" style="color:${_grrCol(_wcgDisp)}">${wcg}</div></div>
+    <div class="sc hi" style="${_sn?'background:rgba(0,212,170,.05)':''}">
+      <div class="l">${_sn?'⚡ Scenario NRR':'Best Case NRR'}</div>
+      <div class="v" style="color:${_nrrCol(_bcnDisp)}">${_sn||bcn}</div>
+    </div>
+    <div class="sc hi"><div class="l">Worst Case NRR</div><div class="v" style="color:${_nrrCol(_wcnDisp)}">${wcn}</div></div>
+    <div class="sc hi"><div class="l">Renewable ARR</div><div class="v" style="color:var(--green)">${fmt(tRA)}</div><div class="s">${tDeals} deals</div></div>
+    <div class="sc hi"><div class="l">Renewed ARR</div><div class="v" style="color:var(--green)">${fmt(tRn)}</div><div class="s">${renewedDeals.length} deals</div></div>
+    <div class="sc hi"><div class="l">Upsell Closed Won</div><div class="v" style="color:var(--green)">${fmt(tUCW)}</div><div class="s">${upsellCWDeals.length} deals</div></div>
+    <div class="sc hi"><div class="l">Churned ARR</div><div class="v" style="color:var(--red)">${fmt(tCh)||'—'}</div><div class="s">${churnedDeals.length} deals</div></div>`;
+  // Per-pod churned ARR from deal list
+  const podChurned={};
+  (DATA.renewalDeals||[]).filter(d=>d.fiscalQuarter===activeQ).forEach(d=>{
+    if(d.dealStage==='Churned') podChurned[d.podLead]=(podChurned[d.podLead]||0)+(d.amount||0);
+  });
+
+  const tBcgV=(tRn+tCm+0.75*tTG+tDg)/tRA,tWcgV=(tRn+tCm+tDg)/tRA;
+  const tBcnV=(tRn+tCm+0.75*tTG+tDg+tUCW+tUCm+0.75*tUTG+0.5*tUBC)/tRA,tWcnV=(tRn+tCm+tDg+tUCW+tUCm)/tRA;
+  const tBcnNum=tRn+tCm+0.75*tTG+tDg+tUCW+tUCm+0.75*tUTG+0.5*tUBC;
+  const tD105=tRA>0?1.05*tRA-tBcnNum:null;
+  const tD115=tRA>0?1.15*tRA-tBcnNum:null;
+
+  // ── Scenario ──
+  const SA=isScenActive();
+  // Build a fake combined bucket for totals scenario
+  const tBucket={renewableARR:tRA,renewedARR:tRn,renewalCommit:tCm,renewalTNG:tTG,downgradedARR:tDg,
+                 upsellClosedWon:tUCW,upsellCommit:tUCm,upsellTNG:tUTG,upsellBestCase:tUBC};
+  const tScen=computeScen(tBucket);
+  // Scenario-adjusted To 105/To 115 for total row
+  const tBcnNumEff=SA&&tScen?tScen.nrrNum:tBcnNum;
+  const tD105Eff=tRA>0?1.05*tRA-tBcnNumEff:null;
+  const tD115Eff=tRA>0?1.15*tRA-tBcnNumEff:null;
+
+  // ── Early return for CSM View (no What-If on CSM) ──
+  if(csmView){
+    const sBtn=document.getElementById('scenBtn'),sSep=document.getElementById('scenSep');
+    if(sBtn) sBtn.style.display='none';
+    if(sSep) sSep.style.display='none';
+    renderCSMView(tabsHTML,sumbar,'');
+    return;
+  }
+  // Restore scenBtn + separator for non-CSM views
+  {const sBtn=document.getElementById('scenBtn'),sSep=document.getElementById('scenSep');if(sBtn)sBtn.style.display='';if(sSep)sSep.style.display='';}
+
+  // Scenario panel HTML
+  const scenPanel=scenarioOpen?`
+    <div class="scen-panel" style="margin-bottom:16px">
+      <div class="scen-hdr">
+        <div class="scen-hdr-left">⚡ What-If Scenario${SA?`<span class="scen-active-badge">ACTIVE</span>`:''}
+          <span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:4px">Toggles override stage weightings for ${activeQ}</span>
+        </div>
+        <button class="scen-reset" onclick="resetScenario()">Reset All</button>
+      </div>
+      <div class="scen-body">
+        <div class="scen-cols">
+          <div class="scen-card">
+            <div class="scen-card-hdr renewal">Renewal</div>
+            <table class="scen-tbl">
+              <thead><tr><th></th><th>Neutral</th><th>All Won</th><th>All Lost</th></tr></thead>
+              <tbody>
+                ${stgHTML('TNG','renewalTNG')}
+                ${stgHTML('Commit','renewalCommit')}
+              </tbody>
+            </table>
+          </div>
+          <div class="scen-card">
+            <div class="scen-card-hdr upsell">Upsell</div>
+            <table class="scen-tbl">
+              <thead><tr><th></th><th>Neutral</th><th>All Won</th><th>All Lost</th></tr></thead>
+              <tbody>
+                ${stgHTML('TNG','upsellTNG')}
+                ${stgHTML('Commit','upsellCommit')}
+                ${stgHTML('Best Case','upsellBC')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      ${tScen?`<div class="scen-result">
+        <div class="sr-item"><div class="sr-label">Scenario GRR (All Pods)</div>
+          <div class="sr-val" style="color:var(--accent)">${pct(tScen.grr)}</div>
+          <div class="sr-delta" style="color:${tScen.grr>=tBcgV?'var(--green)':'var(--red)'}">
+            ${tScen.grr>=tBcgV?'▲':'▼'} ${pct(Math.abs(tScen.grr-tBcgV))} vs BC GRR
+          </div>
+        </div>
+        <div class="sr-sep"></div>
+        <div class="sr-item"><div class="sr-label">Scenario NRR (All Pods)</div>
+          <div class="sr-val" style="color:var(--accent2)">${pct(tScen.nrr)}</div>
+          <div class="sr-delta" style="color:${tScen.nrr>=tBcnV?'var(--green)':'var(--red)'}">
+            ${tScen.nrr>=tBcnV?'▲':'▼'} ${pct(Math.abs(tScen.nrr-tBcnV))} vs BC NRR
+          </div>
+        </div>
+        <div class="sr-sep"></div>
+        <div class="sr-item"><div class="sr-label">Δ to 105% NRR</div>
+          <div class="sr-val" style="font-size:16px;color:${tScen.nrrNum>=1.05*tRA?'var(--green)':'var(--red)'}">${tScen.nrrNum>=1.05*tRA?'+'+fmt(tScen.nrrNum-1.05*tRA)+' ahead':fmt(1.05*tRA-tScen.nrrNum)+' needed'}</div>
+        </div>
+        <div class="sr-sep"></div>
+        <div class="sr-item"><div class="sr-label">Δ to 115% NRR</div>
+          <div class="sr-val" style="font-size:16px;color:${tScen.nrrNum>=1.15*tRA?'var(--green)':'var(--red)'}">${tScen.nrrNum>=1.15*tRA?'+'+fmt(tScen.nrrNum-1.15*tRA)+' ahead':fmt(1.15*tRA-tScen.nrrNum)+' needed'}</div>
+        </div>
+      </div>`:''}
+    </div>`:'';
+
+  // Helper: apply per-pod override deltas to a qData bucket for table rendering
+  function effPod(pod){
+    const base=qData[pod]; if(!base) return null;
+    if(!overrideMode||!podDeltas[pod]) return base;
+    const pd=podDeltas[pod];
+    const ra=base.renewableARR||0, rn=base.renewedARR||0;
+    const cm=(base.renewalCommit||0)+pd.dCm, tg=(base.renewalTNG||0)+pd.dTG, dg=(base.downgradedARR||0)+pd.dDg;
+    const ucw=base.upsellClosedWon||0, ucm=(base.upsellCommit||0)+pd.dUCm, utg=(base.upsellTNG||0)+pd.dUTG, ubc=(base.upsellBestCase||0)+pd.dUBC;
+    return{...base,renewalCommit:cm,renewalTNG:tg,downgradedARR:dg,upsellCommit:ucm,upsellTNG:utg,upsellBestCase:ubc,
+      bestCaseGRR:ra>0?(rn+cm+0.75*tg+dg)/ra:null, worstCaseGRR:ra>0?(rn+cm+dg)/ra:null,
+      bestCaseNRR:ra>0?(rn+cm+0.75*tg+dg+ucw+ucm+0.75*utg+0.5*ubc)/ra:null, worstCaseNRR:ra>0?(rn+cm+dg+ucw+ucm)/ra:null};
+  }
+
+  // ── Table 1: GRR/NRR metrics ──
+  const scen1Cols=SA?`<th class="scen-col">Scenario GRR</th><th class="scen-col">Scenario NRR</th>`:'' ;
+  const rows1=podLeads.map(pod=>{
+    const b=effPod(pod);if(!b)return'';
+    const color=POD_COLORS[pod]||'#6c63ff';
+    const ra=b.renewableARR||0;
+    const ps=SA?computeScen(b):null;
+    const bcnNum=ra>0?(b.renewedARR||0)+(b.renewalCommit||0)+0.75*(b.renewalTNG||0)+(b.downgradedARR||0)+(b.upsellClosedWon||0)+(b.upsellCommit||0)+0.75*(b.upsellTNG||0)+0.5*(b.upsellBestCase||0):0;
+    const bcnNumEff=SA&&ps?ps.nrrNum:bcnNum;
+    const d105=ra>0?1.05*ra-bcnNumEff:null;
+    const d115=ra>0?1.15*ra-bcnNumEff:null;
+    const oc=(tab,ft,fv,lbl)=>`openModal('${pod}','${activeQ}','${tab}','${ft}','${fv}','${lbl}')`;
+    const scenCells=SA?(ps
+      ?`<td class="scen-col">${chipTdInner(ps.grr,false)}</td><td class="scen-col">${chipTdInner(ps.nrr,true)}</td>`
+      :`${naTd()}${naTd()}`):'';
+    return`<tr>
+      <td onclick="${oc('r','','','All Deals')}" style="cursor:pointer"><div class="pn"><div class="pa" style="background:${color}">${pod.slice(0,2).toUpperCase()}</div><div><div class="av">${pod}</div><div class="pm">${b.renewalDealCount||0}R · ${b.upsellDealCount||0}U</div></div></div></td>
+      ${ra>0?chipTdClick(b.bestCaseGRR,false,oc('r','','','All Deals')):naTd()}
+      ${ra>0?chipTdClick(b.worstCaseGRR,false,oc('r','','','All Deals')):naTd()}
+      ${ra>0?chipTdClick(b.bestCaseNRR,true,oc('r','','','All Deals')):naTd()}
+      ${ra>0?chipTdClick(b.worstCaseNRR,true,oc('r','','','All Deals')):naTd()}
+      ${d105!==null?deltaTd(d105):naTd()}
+      ${d115!==null?deltaTd(d115):naTd()}
+      ${scenCells}
+    </tr>`;
+  }).join('');
+  const tScenCells=SA?(tScen
+    ?`<td class="scen-col">${chipTdInner(tScen.grr,false)}</td><td class="scen-col">${chipTdInner(tScen.nrr,true)}</td>`
+    :`${naTd()}${naTd()}`):'';
+  const totRow1=`<tr class="trow"><td>ALL PODS</td>
+    ${tRA>0?chipTd(tBcgV,false):naTd()}${tRA>0?chipTd(tWcgV,false):naTd()}
+    ${tRA>0?chipTd(tBcnV,true):naTd()}${tRA>0?chipTd(tWcnV,true):naTd()}
+    ${tD105Eff!==null?deltaTd(tD105Eff):naTd()}${tD115Eff!==null?deltaTd(tD115Eff):naTd()}
+    ${tScenCells}</tr>`;
+
+  // ── Table 2: ARR breakdown ──
+  const rows2=podLeads.map(pod=>{
+    const b=effPod(pod);if(!b)return'';
+    const color=POD_COLORS[pod]||'#6c63ff';
+    const ra=b.renewableARR||0;
+    const chArr=podChurned[pod]||0;
+    const oc=(tab,ft,fv,lbl)=>`openModal('${pod}','${activeQ}','${tab}','${ft}','${fv}','${lbl}')`;
+    const tdC=(tab,ft,fv,lbl,val)=>`<td onclick="${oc(tab,ft,fv,lbl)}" style="cursor:pointer"><span class="av">${fmt(val)}</span></td>`;
+    return`<tr>
+      <td onclick="${oc('r','','','All Deals')}" style="cursor:pointer"><div class="pn"><div class="pa" style="background:${color}">${pod.slice(0,2).toUpperCase()}</div><div class="av">${pod}</div></div></td>
+      ${tdC('r','','','All Deals',ra)}
+      ${tdC('r','stage','Renewed','Renewed',b.renewedARR)}
+      ${tdC('r','fc','commit','Commit',b.renewalCommit)}
+      ${tdC('r','fc','touch','Touch n Go',b.renewalTNG)}
+      ${tdC('r','fc','downgrade','Downgraded',b.downgradedARR)}
+      ${tdC('r','stage','Churned','Churned',chArr)}
+      ${tdC('u','stage','closed won','Upsell Closed Won',b.upsellClosedWon)}
+      ${tdC('u','fc','commit','Upsell Commit',b.upsellCommit)}
+      ${tdC('u','fc','touch','Upsell Touch n Go',b.upsellTNG)}
+      ${tdC('u','fc','best case','Upsell Best Case',b.upsellBestCase)}
+    </tr>`;
+  }).join('');
+  const totRow2=`<tr class="trow"><td>ALL PODS</td>
+    <td>${fmt(tRA)}</td><td>${fmt(tRn)}</td><td>${fmt(tCm)}</td><td>${fmt(tTG)}</td><td>${fmt(tDg)}</td>
+    <td>${fmt(tCh)}</td><td>${fmt(tUCW)}</td><td>${fmt(tUCm)}</td><td>${fmt(tUTG)}</td><td>${fmt(tUBC)}</td></tr>`;
+
+  const podViewToggle='';
+
+  const ovrBanner='';
+  const utilTabsHTML=`<div style="display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden;font-size:12px;font-weight:700">
+    <div onclick="setOverrideMode(false)" style="padding:5px 12px;cursor:pointer;background:${overrideMode?'':'var(--accent)'};color:${overrideMode?'var(--muted)':'#fff'};transition:all .2s">Baseline</div>
+    <div onclick="setOverrideMode(true)" style="padding:5px 12px;cursor:pointer;background:${overrideMode?'var(--accent)':''};color:${overrideMode?'#fff':'var(--muted)'};transition:all .2s;border-left:1px solid var(--border)">Override</div>
+  </div>`;
+  document.getElementById('app').innerHTML=`
+    <div class="qtabs"><div style="display:flex;gap:6px">${tabsHTML}</div>${utilTabsHTML}</div>
+    <div class="sumbar">${sumbar}</div>
+    <div class="tsec">
+      ${ovrBanner}
+      ${scenPanel}
+      ${podViewToggle}
+      <div class="ttl">Pod Metrics — ${activeQ}</div>
+      <div class="mwrap" style="overflow-x:auto"><table style="table-layout:fixed">
+        <thead><tr><th style="width:180px">Pod Lead</th><th style="width:90px">BC GRR</th><th style="width:90px">WC GRR</th><th style="width:90px">BC NRR</th><th style="width:90px">WC NRR</th><th style="width:120px">Δ to 105% NRR</th><th style="width:120px">Δ to 115% NRR</th>${scen1Cols}</tr></thead>
+        <tbody>${rows1}${totRow1}</tbody>
+      </table></div>
+      <div style="height:20px"></div>
+      <div class="ttl">ARR Breakdown — ${activeQ}</div>
+      <div class="mwrap" style="overflow-x:auto"><table style="table-layout:fixed">
+        <thead><tr><th style="width:160px">Pod Lead</th><th style="width:96px">Renewable</th><th style="width:96px">Renewed</th><th style="width:96px">Commit</th><th style="width:96px">TNG</th><th style="width:96px">Downgraded</th><th style="width:96px">Churned</th><th style="width:96px">Upsell CW</th><th style="width:96px">Upsell Commit</th><th style="width:96px">Upsell TNG</th><th style="width:96px">Upsell BC</th></tr></thead>
+        <tbody>${rows2}${totRow2}</tbody>
+      </table></div>
+    </div>`;
+}
+
+function switchQ(q){activeQ=q;render();}
+function pct(v){return(v*100).toFixed(1)+'%';}
+function fmt(v){if(!v||v===0)return'—';if(v>=1e6)return'$'+(v/1e6).toFixed(2)+'M';if(v>=1e3)return'$'+(v/1e3).toFixed(1)+'K';return'$'+Math.round(v).toLocaleString();}
+function chipTd(val,isNRR){const cls=val>=(isNRR?1.15:0.87)?'green':val>=(isNRR?1.05:0.85)?'yellow':'red';return`<td><span class="chip ${cls}">${pct(val)}</span></td>`;}
+function chipTdClick(val,isNRR,oc){const cls=val>=(isNRR?1.15:0.87)?'green':val>=(isNRR?1.05:0.85)?'yellow':'red';return`<td onclick="${oc}" style="cursor:pointer"><span class="chip ${cls}">${pct(val)}</span></td>`;}
+function chipTdInner(val,isNRR){const cls=val>=(isNRR?1.15:0.87)?'green':val>=(isNRR?1.05:0.85)?'yellow':'red';return`<span class="chip ${cls}">${pct(val)}</span>`;}
+function naTd(){return`<td><span class="chip na">—</span></td>`;}
+function deltaTd(delta){
+  // positive delta = gap (need more ARR to hit target) → red
+  // negative delta = surplus (already past target) → green
+  const cls=delta<=0?'green':'red';
+  const sign=delta<=0?'+':'';
+  const label=delta<=0?sign+fmt(-delta)+' ahead':fmt(delta)+' needed';
+  return`<td><span class="chip ${cls}" style="min-width:90px;font-size:12px">${label}</span></td>`;
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+function openModal(pod,q,tab,filterType,filterValue,filterLabel){
+  modalCSM=null;
+  modalPod=pod; modalQ=q;
+  modalTab=tab||'r';
+  modalFilter=(filterType)?{type:filterType,value:filterValue,label:filterLabel}:null;
+  renderModal();
+  document.getElementById('modal').classList.add('open');
+}
+function openCSMModal(csm,tab,filterType,filterValue,filterLabel){
+  modalCSM=csm;
+  modalPod=null;
+  modalQ=activeQ;
+  modalTab=tab||'r';
+  modalFilter=filterType?{type:filterType,value:filterValue,label:filterLabel}:null;
+  renderModal();
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){
+  modalCSM=null;amDrillParams=null;
+  const mtbs=document.querySelector('#modal .mtbs');
+  if(mtbs)mtbs.style.display='';
+  document.getElementById('modal').classList.remove('open');
+}
+function switchTab(t){modalTab=t;modalFilter=null;renderModal();}
+
+// ── AM Drill-down ──────────────────────────────────────────────────────────────
+function openAMDrill(type,value,label){
+  amDrillParams={type,value,label};
+  const mtbs=document.querySelector('#modal .mtbs');
+  if(mtbs)mtbs.style.display='none';
+  renderAMDrillModal();
+  document.getElementById('modal').classList.add('open');
+}
+function renderAMDrillModal(){
+  if(!amDrillParams||!DATA)return;
+  const {type,value,label}=amDrillParams;
+  const FY=['May-26','Jun-26','Jul-26','Aug-26','Sep-26','Oct-26','Nov-26','Dec-26','Jan-27','Feb-27','Mar-27','Apr-27'];
+  let deals=(DATA.upsellDeals||[]).filter(d=>{
+    const is1x=d.oneTimeFee===true||(d.oneTimeFeeRaw||'').toLowerCase()==='yes';
+    if(is1x)return false;
+    const stL=(d.dealStage||'').toLowerCase();
+    const isCL=stL==='closed lost';
+    const isCW=stL==='closed won';
+    const isOpen=!isCL&&!isCW;
+    const fl=(d.forecastCategory||'').toLowerCase();
+    // AM table – cell-specific
+    if(type==='am-all')  return FY.includes(d.closeMonth||'')&&getAMName(d.podLead)===value&&!isCL;
+    if(type==='am-cw')   return FY.includes(d.closeMonth||'')&&getAMName(d.podLead)===value&&isCW;
+    if(type==='am-pipe') return FY.includes(d.closeMonth||'')&&getAMName(d.podLead)===value&&isOpen;
+    if(type==='am-cw-q'){
+      const qNum=parseInt((activeQ||'Q1').charAt(1))||1;
+      const qMonths=new Set(FY.slice((qNum-1)*3,qNum*3));
+      return qMonths.has(d.closeMonth||'')&&getAMName(d.podLead)===value&&isCW;
+    }
+    // Monthly Performance – cell-specific
+    if(type==='month-cw')  return d.closeMonth===value&&isCW;
+    if(type==='month-pipe')return d.closeMonth===value&&isOpen;
+    // Monthly Forecast by Pod – cell-specific
+    if(type==='pod-cw'){
+      const sep=value.lastIndexOf('|');const pod=value.slice(0,sep),mon=value.slice(sep+1);
+      return (pod==='All Pods'||d.podLead===pod)&&d.closeMonth===mon&&isCW;
+    }
+    if(type==='pod-fc'){
+      const parts=value.split('|');const pod=parts[0],mon=parts[1],fcKey=parts[2];
+      const fcMatch=fcKey==='commit'?fl==='commit':fcKey==='best'?fl.includes('best'):fcKey==='touch'?fl.includes('touch'):fcKey==='pipeline'?fl==='pipeline':true;
+      return (pod==='All Pods'||d.podLead===pod)&&d.closeMonth===mon&&isOpen&&fcMatch;
+    }
+    if(type==='pod-all'){
+      const sep=value.lastIndexOf('|');const pod=value.slice(0,sep),mon=value.slice(sep+1);
+      return (pod==='All Pods'||d.podLead===pod)&&d.closeMonth===mon&&!isCL;
+    }
+    return FY.includes(d.closeMonth||'')&&!isCL;
+  });
+  const fcPri=fc=>{const f=(fc||'').toLowerCase();if(f==='commit')return 0;if(f.includes('best'))return 1;if(f.includes('touch'))return 2;if(f==='pipeline')return 3;return 4;};
+  deals=deals.slice().sort((a,b)=>{
+    const aS=(a.dealStage||'').toLowerCase(),bS=(b.dealStage||'').toLowerCase();
+    const aCL=aS==='closed lost',bCL=bS==='closed lost';if(aCL!==bCL)return aCL?1:-1;
+    const aCW=aS==='closed won',bCW=bS==='closed won';if(aCW!==bCW)return aCW?1:-1;
+    const pa=fcPri(a.forecastCategory),pb=fcPri(b.forecastCategory);if(pa!==pb)return pa-pb;
+    return(b.effectiveARR||b.annualisedARR||b.amount||0)-(a.effectiveARR||a.annualisedARR||a.amount||0);
+  });
+  const totalARR=deals.reduce((s,d)=>s+(d.effectiveARR||d.annualisedARR||d.amount||0),0);
+  const rows=deals.map(d=>{
+    const arr=d.effectiveARR||d.annualisedARR||d.amount||0;
+    const stL=(d.dealStage||'').toLowerCase();
+    const isCl=stL==='closed won'||stL==='closed lost';
+    const fcCell=isCl?`<span class="tag pp">—</span>`:fcU(d.forecastCategory);
+    return`<tr>
+      <td style="max-width:200px;word-break:break-word;font-weight:500">${d.company||'—'}</td>
+      <td style="color:var(--muted);font-size:11px;max-width:160px;word-break:break-word">${d.dealName||'—'}</td>
+      <td style="color:var(--muted)">${d.dealOwner||'—'}</td>
+      <td>${stgU(d.dealStage)}</td><td>${fcCell}</td>
+      <td style="color:var(--muted)">${d.closeMonth||'—'}</td>
+      <td style="text-align:right;font-weight:600">${fmt(arr)}</td>
+      <td style="font-size:11px">${d.upsellType||'—'}</td>
+      <td>${(d.amQualified||'').toLowerCase()==='yes'?'<span class="tag cm">CSQL</span>':''}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('mTitle').textContent=label;
+  document.getElementById('mSub').innerHTML=`${deals.length} deals · Total ARR: <strong style="color:var(--green)">${fmt(totalARR)}</strong>`;
+  document.getElementById('mBody').innerHTML=deals.length===0?
+    `<div class="empty">No upsell deals found</div>`:
+    `<div class="dw"><table class="dt">
+      <thead><tr>
+        <th>Company</th><th>Deal Name</th><th>Owner</th><th>Stage</th>
+        <th>FC</th><th>Month</th><th style="text-align:right">ARR</th>
+        <th>Upsell Type</th><th>AM Qual</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+}
+
+function renderModal(){
+  const name=modalCSM||modalPod;
+  // For pod mode: look up aggregate bucket. For CSM mode: compute on the fly.
+  let ra=0,rDealCnt=0,uDealCnt=0,rRenewed=0,uCW=0;
+  if(modalCSM){
+    const agg=computeCSMAgg(modalQ);
+    const cb=agg[modalCSM]||{};
+    ra=cb.renewable||0;
+    rRenewed=cb.renewed||0;
+    uCW=cb.upsellCW||0;
+    rDealCnt=(DATA.renewalDeals||[]).filter(d=>d.fiscalQuarter===modalQ&&d.dealOwner===modalCSM).length;
+    uDealCnt=(DATA.upsellDeals||[]).filter(d=>d.fiscalQuarter===modalQ&&d.dealOwner===modalCSM&&(d.dealStage||'').toLowerCase()!=='closed lost').length;
+  } else {
+    const b=(DATA.aggregates[modalQ]||{})[modalPod]||{};
+    ra=b.renewableARR||0;
+    rDealCnt=b.renewalDealCount||0;
+    uDealCnt=b.upsellDealCount||0;
+    rRenewed=b.renewedARR||0;
+    uCW=b.upsellClosedWon||0;
+  }
+  document.getElementById('mTitle').textContent=`${name} — ${modalQ}`;
+  const filterNote=modalFilter&&modalFilter.label?`<span style="background:rgba(108,99,255,.15);color:var(--accent);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">${modalFilter.label}</span>`:'';
+  document.getElementById('mSub').innerHTML=`<span>${rDealCnt} renewal &nbsp;·&nbsp; ${uDealCnt} upsell</span><span style="width:1px;height:12px;background:var(--border)"></span><span>Renewable ${fmt(ra)}</span>${filterNote?filterNote:''}`;
+
+  // Metrics bar — for pod mode use pre-computed; for CSM mode compute from deals
+  let metricsHTML='';
+  if(modalCSM){
+    const grrV=ra>0?rRenewed/ra:null;
+    const grrCls=grrV===null?'':gc(grrV);
+    const csqlCount=(DATA.upsellDeals||[]).filter(d=>d.fiscalQuarter===modalQ&&d.dealOwner===modalCSM&&(d.amQualified||'').toLowerCase()==='yes'&&!d.oneTimeFee&&(d.dealStage||'').toLowerCase()!=='closed lost').length;
+    metricsHTML=`<div class="mg" style="grid-template-columns:repeat(5,1fr)">
+      <div class="mbox"><div class="ml">GRR</div><div class="mv ${grrCls}">${grrV!==null?pct(grrV):'—'}</div><div style="font-size:10px;color:var(--muted);margin-top:4px">${rDealCnt}R · ${uDealCnt}U deals</div></div>
+      <div class="mbox"><div class="ml">Renewable ARR</div><div class="mv">${fmt(ra)||'—'}</div></div>
+      <div class="mbox"><div class="ml">Renewed ARR</div><div class="mv blue">${fmt(rRenewed)||'—'}</div></div>
+      <div class="mbox"><div class="ml">Upsell CW</div><div class="mv" style="color:var(--accent2)">${fmt(uCW)||'—'}</div></div>
+      <div class="mbox"><div class="ml">CSQL</div><div class="mv">${csqlCount}</div><div style="font-size:10px;color:var(--muted);margin-top:4px">AM Qualified</div></div>
+    </div>`;
+  } else {
+    const b=(DATA.aggregates[modalQ]||{})[modalPod]||{};
+    metricsHTML=`<div class="mg">
+      <div class="mbox"><div class="ml">BC GRR</div><div class="mv ${gc(b.bestCaseGRR)}">${ra>0?pct(b.bestCaseGRR):'—'}</div></div>
+      <div class="mbox"><div class="ml">WC GRR</div><div class="mv ${gc(b.worstCaseGRR)}">${ra>0?pct(b.worstCaseGRR):'—'}</div></div>
+      <div class="mbox"><div class="ml">BC NRR</div><div class="mv ${nc(b.bestCaseNRR)}">${ra>0?pct(b.bestCaseNRR):'—'}</div></div>
+      <div class="mbox"><div class="ml">WC NRR</div><div class="mv ${nc(b.worstCaseNRR)}">${ra>0?pct(b.worstCaseNRR):'—'}</div></div>
+      <div class="mbox"><div class="ml">Renewed ARR</div><div class="mv blue">${fmt(b.renewedARR)}</div></div>
+      <div class="mbox"><div class="ml">Upsell CW</div><div class="mv" style="color:var(--accent2)">${fmt(b.upsellClosedWon)}</div></div>
+    </div>`;
+  }
+
+  const isR=modalTab==='r';
+  document.getElementById('tab-r').className='mtb'+(isR?' active':'');
+  document.getElementById('tab-u').className='mtb'+(!isR?' active':'');
+  let tbl='';
+  // Sort helpers: open deals first, then by FC priority, then ARR desc
+  function fcRenPri(fc){const f=(fc||'').toLowerCase();if(f==='commit')return 0;if(f.includes('touch'))return 1;if(f==='downgrade')return 2;if(f==='churn')return 3;return 4;}
+  function fcUpsPri(fc){const f=(fc||'').toLowerCase();if(f==='commit')return 0;if(f.includes('touch'))return 1;if(f.includes('best'))return 2;if(f==='pipeline')return 3;return 4;}
+  const sortRenewalDeals=(arr)=>arr.slice().sort((a,b)=>{
+    const aStL=(a.dealStage||'').toLowerCase();
+    const bStL=(b.dealStage||'').toLowerCase();
+    const aCl=aStL==='renewed'||aStL==='churned';
+    const bCl=bStL==='renewed'||bStL==='churned';
+    if(aCl!==bCl) return aCl?1:-1;
+    if(!aCl){const pa=fcRenPri(a.forecastCategory),pb=fcRenPri(b.forecastCategory);if(pa!==pb)return pa-pb;}
+    return (b.amount||0)-(a.amount||0);
+  });
+  const sortUpsellDeals=(arr)=>arr.slice().sort((a,b)=>{
+    const aStL=(a.dealStage||'').toLowerCase();
+    const bStL=(b.dealStage||'').toLowerCase();
+    const aCl=aStL==='closed won'||aStL==='closed lost';
+    const bCl=bStL==='closed won'||bStL==='closed lost';
+    if(aCl!==bCl) return aCl?1:-1;
+    if(!aCl){const pa=fcUpsPri(a.forecastCategory),pb=fcUpsPri(b.forecastCategory);if(pa!==pb)return pa-pb;}
+    return (b.effectiveARR||b.annualisedARR||b.amount||0)-(a.effectiveARR||a.annualisedARR||a.amount||0);
+  });
+
+  if(isR){
+    let deals=(DATA.renewalDeals||[]).filter(d=>d.fiscalQuarter===modalQ&&(modalCSM?d.dealOwner===modalCSM:d.podLead===modalPod));
+    if(modalFilter&&modalFilter.type==='stage'){
+      // Stage-specific click: show only that stage
+      deals=deals.filter(d=>(d.dealStage||'').toLowerCase()===modalFilter.value.toLowerCase());
+    } else if(modalFilter&&modalFilter.type==='fc'){
+      // FC filter: active pipeline only (exclude closed stages)
+      deals=deals.filter(d=>{const sl=(d.dealStage||'').toLowerCase();return sl!=='renewed'&&sl!=='churned';});
+      deals=deals.filter(d=>{
+        const fl=(d.forecastCategory||'').toLowerCase();
+        return modalFilter.value==='touch'?fl.includes('touch'):fl===modalFilter.value;
+      });
+    }
+    // Name click (no filter): show all deals — no additional filter
+    deals=sortRenewalDeals(deals);
+    if(!deals.length){tbl=`<div class="empty">No deals found${modalFilter?' for '+modalFilter.label:''}</div>`;}
+    else{const r=deals.map(d=>{
+      const dStL=(d.dealStage||'').toLowerCase();
+      const isClosed=dStL==='renewed'||dStL==='churned';
+      const fcCell=isClosed?`<span class="tag pp">—</span>`:fcR(d.forecastCategory);
+      return`<tr><td style="max-width:220px;word-break:break-word;font-weight:500">${d.company||'—'}</td><td style="color:var(--muted);font-size:11px;max-width:180px;word-break:break-word">${d.dealName||'—'}</td><td style="color:var(--muted)">${d.dealOwner||'—'}</td><td>${stgR(d.dealStage)}</td><td>${fcCell}</td><td style="text-align:right;font-weight:600">${fmt(d.amount)}</td><td style="text-align:right;color:var(--muted)">${fmt(d.renewedARR)||'—'}</td><td style="text-align:right;color:var(--muted)">${d.downgradedARR>0?fmt(d.downgradedARR):'—'}</td><td style="text-align:right;color:var(--muted)">${d.closeDate||'—'}</td></tr>`;
+    }).join('');
+    tbl=`<div class="dw"><table class="dt"><thead><tr><th style="min-width:180px">Company</th><th style="min-width:160px">Deal Name</th><th>Owner</th><th>Stage</th><th>FC</th><th style="text-align:right">ARR</th><th style="text-align:right">Renewed</th><th style="text-align:right">Downgraded</th><th style="text-align:right">Close Date</th></tr></thead><tbody>${r}</tbody></table></div>`;}
+  }else{
+    let deals=(DATA.upsellDeals||[]).filter(d=>d.fiscalQuarter===modalQ&&(modalCSM?d.dealOwner===modalCSM:d.podLead===modalPod));
+    if(modalFilter&&modalFilter.type==='stage'){
+      // Stage-specific click: show all deals of that stage (including CW/CL)
+      deals=deals.filter(d=>(d.dealStage||'').toLowerCase()===modalFilter.value.toLowerCase());
+    } else if(modalFilter&&modalFilter.type==='amq'){
+      // AM Qualified (CSQL) filter — any stage
+      deals=deals.filter(d=>(d.amQualified||'').toLowerCase()==='yes');
+    } else if(!modalFilter){
+      // Name click: show all deals except closed lost
+      deals=deals.filter(d=>(d.dealStage||'').toLowerCase()!=='closed lost');
+    } else {
+      // FC filter: exclude closed stages (active pipeline only)
+      deals=deals.filter(d=>{const sl=(d.dealStage||'').toLowerCase();return sl!=='closed won'&&sl!=='closed lost';});
+      if(modalFilter.type==='fc'){
+        deals=deals.filter(d=>{
+          const fl=(d.forecastCategory||'').toLowerCase();
+          if(modalFilter.value==='touch') return fl.includes('touch');
+          if(modalFilter.value==='best') return fl.includes('best');
+          return fl===modalFilter.value;
+        });
+      }
+    }
+    deals=sortUpsellDeals(deals);
+    if(!deals.length){tbl=`<div class="empty">No deals found${modalFilter?' for '+modalFilter.label:''}</div>`;}
+    else{const r=deals.map(d=>{
+      const uStL=(d.dealStage||'').toLowerCase();
+      const isClosed=uStL==='closed won'||uStL==='closed lost';
+      const fcCell=isClosed?`<span class="tag pp">—</span>`:fcU(d.forecastCategory);
+      return`<tr><td style="max-width:220px;word-break:break-word;font-weight:500">${d.company||'—'}</td><td style="color:var(--muted);font-size:11px;max-width:180px;word-break:break-word">${d.dealName||'—'}</td><td style="color:var(--muted)">${d.dealOwner||'—'}</td><td>${stgU(d.dealStage)}</td><td>${fcCell}</td><td style="text-align:right;font-weight:600">${fmt(d.effectiveARR||d.annualisedARR||d.amount)}</td><td style="white-space:nowrap">${d.upsellType?`<span style="font-size:11px;color:var(--text)">${d.upsellType}</span>`:''}</td><td style="text-align:center">${d.oneTimeFee?`<span style="font-size:11px;font-weight:600;color:var(--accent2)">Yes</span>`:`<span style="font-size:11px;color:var(--muted)">No</span>`}</td><td>${(d.amQualified||'').toLowerCase()==='yes'?'<span class="tag cm">CSQL</span>':''}</td><td style="text-align:right;color:var(--muted)">${d.closeDate||'—'}</td></tr>`;
+    }).join('');
+    tbl=`<div class="dw"><table class="dt"><thead><tr><th style="min-width:180px">Company</th><th style="min-width:160px">Deal Name</th><th>Owner</th><th>Stage</th><th>FC</th><th style="text-align:right">ARR</th><th>Type</th><th style="text-align:center">One-time</th><th>AM Qual</th><th style="text-align:right">Close Date</th></tr></thead><tbody>${r}</tbody></table></div>`;}
+  }
+  document.getElementById('mBody').innerHTML=metricsHTML+tbl;
+}
+function gc(v){return v>=0.87?'green':v>=0.85?'yellow':'red';}
+function nc(v){return v>=1.15?'green':v>=1.05?'yellow':'red';}
+function stgR(s){const m={'Renewed':'rn','Churned':'ch','Contracting':'cm'};return`<span class="tag ${m[s]||'pp'}">${s||'—'}</span>`;}
+function fcR(f){const fl=(f||'').toLowerCase();const c=fl==='commit'?'cm':fl.includes('touch')?'tg':fl==='downgrade'?'dn':fl==='churn'?'ch':fl.includes('best')?'bc':'pp';return`<span class="tag ${c}">${f||'—'}</span>`;}
+function stgU(s){const sl=(s||'').toLowerCase();const c=sl==='closed won'?'cw':sl==='closed lost'?'ch':sl==='contracting'?'cm':'pp';return`<span class="tag ${c}">${s||'—'}</span>`;}
+function fcU(f){const fl=(f||'').toLowerCase();const c=fl==='commit'?'cm':fl.includes('touch')?'tg':fl.includes('best')?'bc':'pp';return`<span class="tag ${c}">${f||'—'}</span>`;}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+// ── AM helpers ────────────────────────────────────────────────────────────────
+function getAMName(pod){const p=(pod||'').trim();if(p==='Rahul'||p==='Abhilash')return'Rahul Shah';if(p==='Alice'||p==='Muskan')return'Ajay';return null;}
+function setAMPodFilter(pod){amPodFilter=pod;renderAM();}
+function setAMTarget(v){
+  // accepts "3M","3000K","3000000","$3M" etc.
+  const s=(v||'').replace(/[$,\s]/g,'').toUpperCase();
+  let n=parseFloat(s);
+  if(isNaN(n))return;
+  if(s.endsWith('M'))n*=1e6;
+  else if(s.endsWith('K'))n*=1e3;
+  n=Math.round(n/12); // interpret as annual → convert to monthly
+  if(n>0){amMonthlyTarget=n;renderAM();}
+}
+
+// ── AM Dashboard ──────────────────────────────────────────────────────────────
+function renderAM(){
+  if(!DATA){document.getElementById('app').innerHTML=`<div class="log-page"><p style="color:var(--muted);font-size:13px">Load data first to see the AM Dashboard.</p></div>`;return;}
+  const upsellDeals=DATA.upsellDeals||[];
+  const annualTarget=amMonthlyTarget*12;
+  const SA=isScenActive();
+  // For each open deal, determine if scenario reclassifies it:
+  // 'won' → treat as Closed Won (CW ARR goes up, open pipeline drops)
+  // 'lost' → treat as Closed Lost (CW ARR unchanged, open pipeline drops)
+  // null → open pipeline as normal
+  function scenClass(fc){
+    const f=(fc||'').toLowerCase();
+    if(f==='commit'){if(scenario.upsellCommit==='won')return'won';if(scenario.upsellCommit==='lost')return'lost';}
+    if(f.includes('touch')){if(scenario.upsellTNG==='won')return'won';if(scenario.upsellTNG==='lost')return'lost';}
+    if(f.includes('best')){if(scenario.upsellBC==='won')return'won';if(scenario.upsellBC==='lost')return'lost';}
+    return null;
+  }
+
+  // FY27 months: Q1=May/Jun/Jul, Q2=Aug/Sep/Oct, Q3=Nov/Dec/Jan, Q4=Feb/Mar/Apr (FY runs May 2026–Apr 2027)
+  const FY_MONTHS=['May-26','Jun-26','Jul-26','Aug-26','Sep-26','Oct-26','Nov-26','Dec-26','Jan-27','Feb-27','Mar-27','Apr-27'];
+  const MO_NAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function mOrd(m){const[mn,yr]=m.split('-');return parseInt('20'+yr)*12+MO_NAMES.indexOf(mn);}
+
+  // Current month in IST for YTD
+  const now=new Date();
+  const istNow=new Date(now.getTime()+(5.5*60-now.getTimezoneOffset())*60000);
+  const todayMon=MO_NAMES[istNow.getMonth()]+'-'+String(istNow.getFullYear()).slice(2);
+  const todayOrd=mOrd(todayMon);
+  const ytdSet=new Set(FY_MONTHS.filter(m=>mOrd(m)<=todayOrd));
+
+  // FC weight for weighted pipeline column (baseline)
+  function wt(fc){
+    const f=(fc||'').toLowerCase();
+    if(f==='commit')return 1.0;if(f.includes('touch'))return 0.75;if(f.includes('best'))return 0.5;if(f==='pipeline')return 0.1;return 0;
+  }
+
+  // Aggregation: baseline + scenario side-by-side
+  let cwARRYTD=0,cw1xYTD=0,openPipeFY=0;
+  let sCwARRYTD=0,sCw1xYTD=0,sOpenPipeFY=0;
+  const AMS=['Rahul Shah','Ajay'];
+  const amAgg={};
+  const qNum=parseInt((activeQ||'Q1').charAt(1))||1;
+  const currQMonths=FY_MONTHS.slice((qNum-1)*3,qNum*3);
+  const currQSet=new Set(currQMonths);
+  const quarterlyTarget=amMonthlyTarget*3;
+  AMS.forEach(a=>amAgg[a]={cwARR:0,openPipe:0,sCwARR:0,sOpenPipe:0,cwARRCurrQ:0,sCwARRCurrQ:0});
+  const mAgg={};
+  FY_MONTHS.forEach(m=>mAgg[m]={cwARR:0,cw1x:0,openPipe:0,weighted:0,sCwARR:0,sCw1x:0,sOpenPipe:0});
+  const POD_LEADS=['Rahul','Abhilash','Alice','Muskan'];
+  const podAgg={};
+  POD_LEADS.forEach(pod=>{podAgg[pod]={};FY_MONTHS.forEach(m=>podAgg[pod][m]={cw:0,commit:0,bc:0,tng:0,pipe:0,nf:0,unspec:0});});
+
+  for(const d of upsellDeals){
+    const am=getAMName(d.podLead);
+    if(!am)continue;
+    const stL=(d.dealStage||'').toLowerCase();
+    const isCW=stL==='closed won';
+    const isCL=stL==='closed lost';
+    const isClosed=isCW||isCL;
+    const is1x=d.oneTimeFee===true||(d.oneTimeFeeRaw||'').toLowerCase()==='yes';
+    const arr=d.effectiveARR||d.annualisedARR||d.amount||0;
+    const mon=d.closeMonth||'';
+    const inFY=FY_MONTHS.includes(mon);
+    const isYTD=ytdSet.has(mon);
+
+    // Scenario reclassification for open deals
+    const sc=!isClosed?scenClass(d.forecastCategory):null; // 'won','lost', or null
+    // Scenario-effective status
+    const sIsCW=isCW||(sc==='won');
+    const sIsOpen=!isClosed&&sc===null;
+
+    // Baseline KPIs
+    if(isCW&&isYTD){if(is1x)cw1xYTD+=arr;else cwARRYTD+=arr;}
+    if(!isClosed&&!is1x)openPipeFY+=arr;
+    // Scenario KPIs
+    if(sIsCW&&isYTD){if(is1x)sCw1xYTD+=arr;else sCwARRYTD+=arr;}
+    if(sIsOpen&&!is1x)sOpenPipeFY+=arr;
+
+    // AM table: baseline
+    if(isCW&&!is1x)amAgg[am].cwARR+=arr;
+    if(!isClosed&&!is1x)amAgg[am].openPipe+=arr;
+    if(isCW&&!is1x&&inFY&&currQSet.has(mon))amAgg[am].cwARRCurrQ+=arr;
+    // AM table: scenario
+    if(sIsCW&&!is1x)amAgg[am].sCwARR+=arr;
+    if(sIsOpen&&!is1x)amAgg[am].sOpenPipe+=arr;
+    if(sIsCW&&!is1x&&inFY&&currQSet.has(mon))amAgg[am].sCwARRCurrQ+=arr;
+
+    // Monthly: baseline
+    if(inFY){
+      if(isCW){if(is1x)mAgg[mon].cw1x+=arr;else mAgg[mon].cwARR+=arr;}
+      if(!isClosed&&!is1x){mAgg[mon].openPipe+=arr;mAgg[mon].weighted+=arr*wt(d.forecastCategory);}
+    }
+    // Monthly: scenario
+    if(inFY){
+      if(sIsCW){if(is1x)mAgg[mon].sCw1x+=arr;else mAgg[mon].sCwARR+=arr;}
+      if(sIsOpen&&!is1x)mAgg[mon].sOpenPipe+=arr;
+    }
+
+    // Pod breakdown — recurring only (exclude 1x)
+    if(!is1x&&d.podLead&&podAgg[d.podLead]&&inFY){
+      const fcL=(d.forecastCategory||'').toLowerCase();
+      const pm=podAgg[d.podLead][mon];
+      if(isCW)pm.cw+=arr;
+      else if(!isCL){
+        if(fcL==='commit')pm.commit+=arr;
+        else if(fcL.includes('best'))pm.bc+=arr;
+        else if(fcL.includes('touch'))pm.tng+=arr;
+        else if(fcL==='pipeline')pm.pipe+=arr;
+        else if(fcL.includes('not forecast')||fcL.includes('no forecast'))pm.nf+=arr;
+        else pm.unspec+=arr;
+      }
+    }
+  }
+
+  const f=v=>v?fmt(v):'—';
+  // Which values to display: scenario or baseline
+  const dCwARRYTD=SA?sCwARRYTD:cwARRYTD;
+  const dCw1xYTD=SA?sCw1xYTD:cw1xYTD;
+  const dOpenPipeFY=SA?sOpenPipeFY:openPipeFY;
+  const pctT=annualTarget>0?dCwARRYTD/annualTarget:0;
+  const cwARRCurrQTotal=AMS.reduce((s,a)=>s+(SA?amAgg[a].sCwARRCurrQ:amAgg[a].cwARRCurrQ),0);
+  const pctQ=quarterlyTarget>0?cwARRCurrQTotal/quarterlyTarget:0;
+
+  // ── Section 1: KPI tiles ──
+  const annualTargetDisp='$'+(annualTarget>=1e6?(annualTarget/1e6).toFixed(1)+'M':(annualTarget/1e3).toFixed(0)+'K');
+  const monthlyDisp='$'+(amMonthlyTarget>=1e3?(amMonthlyTarget/1e3).toFixed(0)+'K':amMonthlyTarget);
+  const kpiSection=`<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;padding:16px 32px;">
+    <div class="sc hi" style="cursor:text" title="Click value to edit annual target">
+      <div class="l">Annual Target</div>
+      <div class="v" style="color:var(--accent)">
+        <input id="amTargetInp" type="text" value="${annualTargetDisp}"
+          style="background:none;border:none;border-bottom:1px dashed var(--border);color:var(--accent);font-size:22px;font-weight:700;width:100%;outline:none;padding:0;cursor:text"
+          onblur="setAMTarget(this.value)" onkeydown="if(event.key==='Enter')this.blur()" onclick="this.select()"/>
+      </div>
+      <div class="s">${monthlyDisp} / month · editable</div>
+    </div>
+    <div class="sc hi${SA?' scen-col':''}"><div class="l">${SA?'⚡ ':''} CW ARR YTD</div><div class="v" style="color:var(--green)">${f(dCwARRYTD)}</div><div class="s">recurring · YTD</div></div>
+    <div class="sc hi"><div class="l">CW 1x YTD</div><div class="v" style="color:var(--accent2)">${f(dCw1xYTD)}</div><div class="s">1x fees · YTD</div></div>
+    <div class="sc hi${SA?' scen-col':''}"><div class="l">${SA?'⚡ ':''} Open Pipeline FY</div><div class="v" style="color:var(--blue)">${f(dOpenPipeFY)}</div><div class="s">${SA?'scenario-adjusted':'recurring open deals'}</div></div>
+    <div class="sc hi${SA?' scen-col':''}"><div class="l">${SA?'⚡ ':''} % of Q Target (${activeQ.split('-')[0]})</div>
+      <div class="v" style="color:${pctQ>=1?'var(--green)':pctQ>=0.5?'var(--yellow)':'var(--red)'}">${(pctQ*100).toFixed(1)}%</div>
+      <div class="s">CW ARR vs ${'$'+(quarterlyTarget>=1e6?(quarterlyTarget/1e6).toFixed(1)+'M':(quarterlyTarget/1e3).toFixed(0)+'K')} Q target</div>
+    </div>
+    <div class="sc hi${SA?' scen-col':''}"><div class="l">${SA?'⚡ ':''} % of Annual Target</div>
+      <div class="v" style="color:${pctT>=1?'var(--green)':pctT>=0.5?'var(--yellow)':'var(--red)'}">${(pctT*100).toFixed(1)}%</div>
+      <div class="s">CW ARR vs ${annualTargetDisp}</div>
+    </div>
+  </div>`;
+
+  // Pre-compute scenario result bar using current-quarter pod totals (always shown, same as ALL dashboard)
+  let amScenResultHTML='';
+  {
+    const qd=DATA.aggregates&&DATA.aggregates[activeQ]||{};
+    const pods=Object.keys(qd);
+    let sRA=0,sRn=0,sCm=0,sTG=0,sDg=0,sUCW=0,sUCm=0,sUTG=0,sUBC=0;
+    pods.forEach(pod=>{const b=qd[pod]||{};sRA+=b.renewableARR||0;sRn+=b.renewedARR||0;sCm+=b.renewalCommit||0;sTG+=b.renewalTNG||0;sDg+=b.downgradedARR||0;sUCW+=b.upsellClosedWon||0;sUCm+=b.upsellCommit||0;sUTG+=b.upsellTNG||0;sUBC+=b.upsellBestCase||0;});
+    if(sRA>0){
+      const sBcgV=(sRn+sCm+0.75*sTG+sDg)/sRA;
+      const sBcnV=(sRn+sCm+0.75*sTG+sDg+sUCW+sUCm+0.75*sUTG+0.5*sUBC)/sRA;
+      const sBucket={renewableARR:sRA,renewedARR:sRn,renewalCommit:sCm,renewalTNG:sTG,downgradedARR:sDg,upsellClosedWon:sUCW,upsellCommit:sUCm,upsellTNG:sUTG,upsellBestCase:sUBC};
+      const sScen=computeScen(sBucket);
+      if(sScen){
+        const pct=v=>(v*100).toFixed(1)+'%';
+        amScenResultHTML=`<div class="scen-result">
+          <div class="sr-item"><div class="sr-label">Scenario GRR (All Pods)</div>
+            <div class="sr-val" style="color:var(--accent)">${pct(sScen.grr)}</div>
+            <div class="sr-delta" style="color:${sScen.grr>=sBcgV?'var(--green)':'var(--red)'}">${sScen.grr>=sBcgV?'▲':'▼'} ${pct(Math.abs(sScen.grr-sBcgV))} vs BC GRR</div>
+          </div>
+          <div class="sr-sep"></div>
+          <div class="sr-item"><div class="sr-label">Scenario NRR (All Pods)</div>
+            <div class="sr-val" style="color:var(--accent2)">${pct(sScen.nrr)}</div>
+            <div class="sr-delta" style="color:${sScen.nrr>=sBcnV?'var(--green)':'var(--red)'}">${sScen.nrr>=sBcnV?'▲':'▼'} ${pct(Math.abs(sScen.nrr-sBcnV))} vs BC NRR</div>
+          </div>
+          <div class="sr-sep"></div>
+          <div class="sr-item"><div class="sr-label">Δ to 105% NRR</div>
+            <div class="sr-val" style="font-size:16px;color:${sScen.nrrNum>=1.05*sRA?'var(--green)':'var(--red)'}">${sScen.nrrNum>=1.05*sRA?'+'+fmt(sScen.nrrNum-1.05*sRA)+' ahead':fmt(1.05*sRA-sScen.nrrNum)+' needed'}</div>
+          </div>
+          <div class="sr-sep"></div>
+          <div class="sr-item"><div class="sr-label">Δ to 115% NRR</div>
+            <div class="sr-val" style="font-size:16px;color:${sScen.nrrNum>=1.15*sRA?'var(--green)':'var(--red)'}">${sScen.nrrNum>=1.15*sRA?'+'+fmt(sScen.nrrNum-1.15*sRA)+' ahead':fmt(1.15*sRA-sScen.nrrNum)+' needed'}</div>
+          </div>
+        </div>`;
+      }
+    }
+  }
+
+  // ── Scenario panel (same style/controls as main dashboard, rendered below tiles) ──
+  const amScenPanel=scenarioOpen?`<div class="scen-panel" style="margin:0 32px 16px">
+    <div class="scen-hdr">
+      <div class="scen-hdr-left">⚡ What-If Scenario${SA?`<span class="scen-active-badge">ACTIVE</span>`:''}
+        <span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:4px">Reclassifies open deals as won or lost — updates all AM tables</span>
+      </div>
+      <button class="scen-reset" onclick="resetScenario()">Reset All</button>
+    </div>
+    <div class="scen-body">
+      <div class="scen-cols">
+        <div class="scen-card">
+          <div class="scen-card-hdr renewal">Renewal</div>
+          <table class="scen-tbl">
+            <thead><tr><th></th><th>Neutral</th><th>All Won</th><th>All Lost</th></tr></thead>
+            <tbody>${stgHTML('TNG','renewalTNG')}${stgHTML('Commit','renewalCommit')}</tbody>
+          </table>
+        </div>
+        <div class="scen-card">
+          <div class="scen-card-hdr upsell">Upsell</div>
+          <table class="scen-tbl">
+            <thead><tr><th></th><th>Neutral</th><th>All Won</th><th>All Lost</th></tr></thead>
+            <tbody>${stgHTML('TNG','upsellTNG')}${stgHTML('Commit','upsellCommit')}${stgHTML('Best Case','upsellBC')}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    ${amScenResultHTML}
+  </div>`:'';
+
+  // ── Section 2: Performance by AM ──
+  const cwColHdr=SA?'⚡ CW ARR (FY)':'CW ARR (FY)';
+  const pipeColHdr=SA?'⚡ Open Pipeline':'Open Pipeline (FY)';
+  const amRows=AMS.map(am=>{
+    const b=amAgg[am];
+    const dispCW=SA?b.sCwARR:b.cwARR;
+    const dispPipe=SA?b.sOpenPipe:b.openPipe;
+    const dispCWQ=SA?b.sCwARRCurrQ:b.cwARRCurrQ;
+    const p=annualTarget>0?dispCW/annualTarget:0;
+    const pQ=quarterlyTarget>0?dispCWQ/quarterlyTarget:0;
+    const currQLabel=activeQ.split('-')[0];
+    return`<tr>
+      <td style="font-weight:600;color:var(--text);cursor:pointer;text-decoration:underline;text-decoration-color:var(--border)" onclick="openAMDrill('am-all','${am}','${am} — All Recurring Upsells FY27')" title="All non-lost deals">${am}</td>
+      <td style="text-align:right;color:${SA?'var(--accent)':'var(--green)'};cursor:pointer" onclick="openAMDrill('am-cw','${am}','${am} — Closed Won FY27')" title="Closed Won deals (full FY)">${f(dispCW)}</td>
+      <td style="text-align:right;color:var(--blue);cursor:pointer" onclick="openAMDrill('am-pipe','${am}','${am} — Open Pipeline FY27')" title="Open deals">${f(dispPipe)}</td>
+      <td style="text-align:right;color:${SA?'var(--accent)':'var(--green)'};cursor:pointer" onclick="openAMDrill('am-cw-q','${am}','${am} — Closed Won ${currQLabel}')" title="Closed Won in ${currQLabel} only">${f(dispCWQ)}</td>
+      <td style="text-align:right;color:${pQ>=1?'var(--green)':pQ>=0.5?'var(--yellow)':'var(--red)'}">${(pQ*100).toFixed(1)}%</td>
+      <td style="text-align:right;color:${p>=1?'var(--green)':p>=0.5?'var(--yellow)':'var(--red)'}">${(p*100).toFixed(1)}%</td>
+    </tr>`;
+  }).join('');
+  const amTotCW=AMS.reduce((s,a)=>s+(SA?amAgg[a].sCwARR:amAgg[a].cwARR),0);
+  const amTotPipe=AMS.reduce((s,a)=>s+(SA?amAgg[a].sOpenPipe:amAgg[a].openPipe),0);
+  const amTotCWQ=AMS.reduce((s,a)=>s+(SA?amAgg[a].sCwARRCurrQ:amAgg[a].cwARRCurrQ),0);
+  const amTotPct=annualTarget>0?amTotCW/annualTarget:0;
+  const amTotPctQ=quarterlyTarget>0?amTotCWQ/quarterlyTarget:0;
+  const currQLabel=activeQ.split('-')[0];
+  const amTotRow=`<tr class="trow"><td>TOTAL</td><td style="text-align:right">${f(amTotCW)}</td><td style="text-align:right">${f(amTotPipe)}</td><td style="text-align:right">${f(amTotCWQ)}</td><td style="text-align:right">${(amTotPctQ*100).toFixed(1)}%</td><td style="text-align:right">${(amTotPct*100).toFixed(1)}%</td></tr>`;
+  const amSection=`<div class="tsec">
+    <div class="ttl">Performance by AM — FY27 to Date${SA?' <span style="color:var(--accent);font-size:10px;font-weight:700">⚡ SCENARIO</span>':''}</div>
+    <div class="mwrap"><table>
+      <thead><tr>
+        <th style="text-align:left">Account Manager</th>
+        <th style="text-align:right${SA?';color:var(--accent)':''}">${cwColHdr}</th>
+        <th style="text-align:right">${pipeColHdr}</th>
+        <th style="text-align:right${SA?';color:var(--accent)':''}">CW ARR (${currQLabel})</th>
+        <th style="text-align:right">% of Q Target (${currQLabel})</th>
+        <th style="text-align:right">% of Annual Target</th>
+      </tr></thead>
+      <tbody>${amRows}${amTotRow}</tbody>
+    </table></div>
+  </div>`;
+
+  // ── Section 3: Monthly Performance ──
+  const mRows=FY_MONTHS.map(m=>{
+    const b=mAgg[m];
+    const isYTD=ytdSet.has(m);
+    const dCW=SA?b.sCwARR:b.cwARR;
+    const dC1x=SA?b.sCw1x:b.cw1x;
+    const dPipe=SA?b.sOpenPipe:b.openPipe;
+    const deficit=isYTD?Math.max(0,amMonthlyTarget-dCW):0;
+    const pctM=amMonthlyTarget>0&&dCW?dCW/amMonthlyTarget:0;
+    return`<tr style="${!isYTD?'opacity:.5':''}">
+      <td style="font-weight:600">${m}${!isYTD?` <span style="font-size:9px;color:var(--muted);font-weight:400;letter-spacing:.3px">FUTURE</span>`:''}</td>
+      <td style="text-align:right;color:var(--muted)">${fmt(amMonthlyTarget)}</td>
+      <td style="text-align:right;color:${SA?'var(--accent)':'var(--green)'};cursor:pointer" onclick="openAMDrill('month-cw','${m}','${m} — Closed Won Recurring')" title="Click to see CW deals">${f(dCW)}</td>
+      <td style="text-align:right;color:var(--accent2)">${f(dC1x)}</td>
+      <td style="text-align:right;color:var(--blue);cursor:pointer" onclick="openAMDrill('month-pipe','${m}','${m} — Open Pipeline Recurring')" title="Click to see open deals">${f(dPipe)}</td>
+      <td style="text-align:right">${f(b.weighted)}</td>
+      <td style="text-align:right;color:${isYTD&&deficit?'var(--red)':isYTD?'var(--green)':'var(--muted)'}">${isYTD?(deficit?fmt(deficit):'✓'):'—'}</td>
+      <td style="text-align:right;color:${pctM>=1?'var(--green)':pctM>=0.5?'var(--yellow)':pctM>0?'var(--red)':'var(--muted)'}">${pctM?(pctM*100).toFixed(1)+'%':'—'}</td>
+    </tr>`;
+  }).join('');
+  const mTotCW=FY_MONTHS.reduce((s,m)=>s+(SA?mAgg[m].sCwARR:mAgg[m].cwARR),0);
+  const mTot1x=FY_MONTHS.reduce((s,m)=>s+(SA?mAgg[m].sCw1x:mAgg[m].cw1x),0);
+  const mTotPipe=FY_MONTHS.reduce((s,m)=>s+(SA?mAgg[m].sOpenPipe:mAgg[m].openPipe),0);
+  const mTotWt=FY_MONTHS.reduce((s,m)=>s+mAgg[m].weighted,0);
+  const mTotPct=annualTarget>0&&mTotCW?mTotCW/annualTarget:0;
+  const mTotRow=`<tr class="trow"><td>TOTAL FY</td><td style="text-align:right">${fmt(annualTarget)}</td><td style="text-align:right">${f(mTotCW)}</td><td style="text-align:right">${f(mTot1x)}</td><td style="text-align:right">${f(mTotPipe)}</td><td style="text-align:right">${f(mTotWt)}</td><td></td><td style="text-align:right">${mTotPct?(mTotPct*100).toFixed(1)+'%':'—'}</td></tr>`;
+  const mSection=`<div class="tsec">
+    <div class="ttl">Monthly Performance — FY27${SA?' <span style="color:var(--accent);font-size:10px;font-weight:700">⚡ SCENARIO</span>':''}</div>
+    <div class="mwrap" style="overflow-x:auto"><table>
+      <thead><tr>
+        <th style="text-align:left">Month</th>
+        <th style="text-align:right">Target</th>
+        <th style="text-align:right${SA?';color:var(--accent)':''}">CW ARR</th>
+        <th style="text-align:right">CW 1x</th>
+        <th style="text-align:right">Open Pipeline</th>
+        <th style="text-align:right">Weighted Pipeline</th>
+        <th style="text-align:right">Deficit</th>
+        <th style="text-align:right">% of Target</th>
+      </tr></thead>
+      <tbody>${mRows}${mTotRow}</tbody>
+    </table></div>
+  </div>`;
+
+  // ── Section 4: Monthly Forecast by Pod ──
+  const podTabs=['','Rahul','Abhilash','Alice','Muskan'].map(p=>`<div class="qtab${amPodFilter===p?' active':''}" onclick="setAMPodFilter('${p}')">${p||'All Pods'}</div>`).join('');
+  const podsToShow=amPodFilter?[amPodFilter]:POD_LEADS;
+  const combined={};
+  FY_MONTHS.forEach(m=>{
+    combined[m]={cw:0,commit:0,bc:0,tng:0,pipe:0,nf:0,unspec:0};
+    podsToShow.forEach(pod=>{
+      const pa=podAgg[pod][m];
+      combined[m].cw+=pa.cw;combined[m].commit+=pa.commit;combined[m].bc+=pa.bc;
+      combined[m].tng+=pa.tng;combined[m].pipe+=pa.pipe;combined[m].nf+=pa.nf;combined[m].unspec+=pa.unspec;
+    });
+  });
+  const fcRows=FY_MONTHS.map(m=>{
+    const b=combined[m];
+    const total=b.cw+b.commit+b.bc+b.tng+b.pipe+b.nf+b.unspec;
+    const isYTD=ytdSet.has(m);
+    const _pod=amPodFilter||'All Pods';
+    const _podLbl=amPodFilter?amPodFilter+' Pod':'All Pods';
+    const _d=(fc,lbl)=>`openAMDrill('pod-fc','${_pod}|${m}|${fc}','${_podLbl} · ${m} — ${lbl}')`;
+    return`<tr style="${!isYTD?'opacity:.5':''}">
+      <td style="font-weight:600;cursor:pointer" onclick="openAMDrill('pod-all','${_pod}|${m}','${_podLbl} · ${m} — All Deals')" title="All non-lost deals">${m}</td>
+      <td style="text-align:right;color:var(--green);cursor:pointer" onclick="openAMDrill('pod-cw','${_pod}|${m}','${_podLbl} · ${m} — Closed Won')" title="Closed Won">${f(b.cw)}</td>
+      <td style="text-align:right;color:var(--blue);cursor:pointer" onclick="${_d('commit','Commit')}" title="Commit deals">${f(b.commit)}</td>
+      <td style="text-align:right;color:var(--purple);cursor:pointer" onclick="${_d('best','Best Case')}" title="Best Case deals">${f(b.bc)}</td>
+      <td style="text-align:right;color:var(--yellow);cursor:pointer" onclick="${_d('touch','TNG')}" title="TNG deals">${f(b.tng)}</td>
+      <td style="text-align:right;color:var(--muted);cursor:pointer" onclick="${_d('pipeline','Pipeline')}" title="Pipeline deals">${f(b.pipe)}</td>
+      <td style="text-align:right;color:var(--muted)">${f(b.nf)}</td>
+      <td style="text-align:right;color:var(--muted)">${f(b.unspec)}</td>
+      <td style="text-align:right;font-weight:600;cursor:pointer" onclick="openAMDrill('pod-all','${_pod}|${m}','${_podLbl} · ${m} — All Deals')" title="All non-lost deals">${f(total)}</td>
+    </tr>`;
+  }).join('');
+  const pfTot={cw:0,commit:0,bc:0,tng:0,pipe:0,nf:0,unspec:0};
+  FY_MONTHS.forEach(m=>Object.keys(pfTot).forEach(k=>pfTot[k]+=combined[m][k]));
+  const pfTotal=Object.values(pfTot).reduce((s,v)=>s+v,0);
+  const pfTotRow=`<tr class="trow"><td>TOTAL</td><td style="text-align:right">${f(pfTot.cw)}</td><td style="text-align:right">${f(pfTot.commit)}</td><td style="text-align:right">${f(pfTot.bc)}</td><td style="text-align:right">${f(pfTot.tng)}</td><td style="text-align:right">${f(pfTot.pipe)}</td><td style="text-align:right">${f(pfTot.nf)}</td><td style="text-align:right">${f(pfTot.unspec)}</td><td style="text-align:right">${f(pfTotal)}</td></tr>`;
+  const fcLabel=amPodFilter?`${amPodFilter} Pod`:'All Pods';
+  const fcSection=`<div class="tsec">
+    <div class="ttl">Monthly Forecast by Pod — ${fcLabel}</div>
+    <div style="display:flex;gap:6px;margin-bottom:14px">${podTabs}</div>
+    <div class="mwrap" style="overflow-x:auto"><table>
+      <thead><tr>
+        <th style="text-align:left">Month</th>
+        <th style="text-align:right">Closed Won</th>
+        <th style="text-align:right">Commit</th>
+        <th style="text-align:right">Best Case</th>
+        <th style="text-align:right">TNG</th>
+        <th style="text-align:right">Pipeline</th>
+        <th style="text-align:right">Not Forecasted</th>
+        <th style="text-align:right">Unspecified</th>
+        <th style="text-align:right">Total</th>
+      </tr></thead>
+      <tbody>${fcRows}${pfTotRow}</tbody>
+    </table></div>
+  </div>`;
+
+  // Spacer — midway (about half the quarter-row height)
+  const amSpacer=`<div style="height:44px;padding:8px 32px 0;display:flex;align-items:center">
+    <span style="color:var(--muted);font-size:12px;font-weight:500;opacity:.7">Account Management · FY27 (May 2026 – Apr 2027)</span>
+  </div>`;
+  document.getElementById('app').innerHTML=amSpacer+kpiSection+amScenPanel+amSection+mSection+fcSection;
+}
+</script>
+</body>
+</html>
